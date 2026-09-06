@@ -1205,6 +1205,15 @@ static void zero_size_align_test(tlsf_t *t)
         assert(tlsf_aalloc(t, 6, 100) == NULL);
         assert(tlsf_aalloc(t, 7, 100) == NULL);
         assert(tlsf_aalloc(t, 9, 100) == NULL);
+
+        /* A power of two that is still too large. TLSF_MAX_SIZE is '1 <<
+         * (_TLSF_FL_MAX - 1)' less one word, so adding the word back gives
+         * exactly that power of two, the smallest one the alignment bound
+         * rejects. Nothing else covers this clause deterministically: the
+         * thread stress test reaches it incidentally, a couple of times in
+         * some forty thousand calls or not at all, depending on scheduling.
+         */
+        assert(tlsf_aalloc(t, TLSF_MAX_SIZE + sizeof(size_t), 100) == NULL);
     }
     printf(".");
     fflush(stdout);
