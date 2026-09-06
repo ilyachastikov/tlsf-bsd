@@ -266,7 +266,7 @@ typedef struct {
   predicate tlsf_payload_header{L}(void *ptr) =
     \valid((char *)ptr) &&
     \valid(((char *)ptr - sizeof(size_t)) + (0 .. sizeof(size_t) - 1));
-*/
+ */
 
 /**
  * Callback to grow or query the memory arena (dynamic pools only). Users of
@@ -286,7 +286,7 @@ typedef struct {
   requires \valid(t);
   requires size <= ((size_t)1 << _TLSF_FL_MAX);
   ensures \result == \null || \valid(((char *)\result) + (0 .. size - 1));
-*/
+ */
 void *tlsf_resize(tlsf_t *t, size_t size);
 
 /**
@@ -307,7 +307,7 @@ void *tlsf_resize(tlsf_t *t, size_t size);
   requires \valid(t);
   ensures (align == 0 || (align & (align - 1)) != 0) ==> \result == \null;
   ensures \result == \null || \valid(((char *)\result) + (0 .. size - 1));
-*/
+ */
 void *tlsf_aalloc(tlsf_t *t, size_t align, size_t size);
 
 /**
@@ -330,7 +330,7 @@ void *tlsf_aalloc(tlsf_t *t, size_t align, size_t size);
   requires mem != \null && size != 0 ==>
     \valid(((char *)mem) + (0 .. size - 1));
   ensures \result <= size;
-*/
+ */
 size_t tlsf_append_pool(tlsf_t *t, void *mem, size_t size);
 
 /**
@@ -358,7 +358,7 @@ size_t tlsf_append_pool(tlsf_t *t, void *mem, size_t size);
   requires mem != \null && bytes != 0 ==>
     \valid(((char *)mem) + (0 .. bytes - 1));
   ensures \result == 0 || t->fixed;
-*/
+ */
 size_t tlsf_pool_init(tlsf_t *t, void *mem, size_t bytes);
 
 /**
@@ -397,13 +397,13 @@ void tlsf_pool_reset(tlsf_t *t);
  * allocation.
  *
  * On 32-bit the resulting 4 bytes is under _Alignof(max_align_t), 16 on i386,
- * so this is not a conforming malloc() substitute there for over-aligned
- * types. Use tlsf_aalloc(), which takes the alignment explicitly.
+ * so this is not a conforming malloc() substitute there for over-aligned types.
+ * Use tlsf_aalloc(), which takes the alignment explicitly.
  */
 /*@
   requires \valid(t);
   ensures \result == \null || \valid(((char *)\result) + (0 .. size - 1));
-*/
+ */
 void *tlsf_malloc(tlsf_t *t, size_t size);
 
 /**
@@ -429,7 +429,7 @@ void *tlsf_malloc(tlsf_t *t, size_t size);
   requires \valid(t);
   requires mem != \null ==> tlsf_payload_header(mem);
   ensures \result == \null || \valid(((char *)\result) + (0 .. size - 1));
-*/
+ */
 void *tlsf_realloc(tlsf_t *t, void *mem, size_t size);
 
 /**
@@ -445,7 +445,7 @@ void *tlsf_realloc(tlsf_t *t, void *mem, size_t size);
 /*@
   requires \valid(t);
   requires mem != \null ==> tlsf_payload_header(mem);
-*/
+ */
 void tlsf_free(tlsf_t *t, void *mem);
 
 /**
@@ -462,7 +462,7 @@ void tlsf_free(tlsf_t *t, void *mem);
 /*@
   requires ptr != \null ==> tlsf_payload_header(ptr);
   ensures ptr == \null ==> \result == 0;
-*/
+ */
 size_t tlsf_usable_size(void *ptr);
 
 /**
@@ -521,7 +521,7 @@ typedef struct {
     ensures \result == 0 || \result == -1;
   complete behaviors;
   disjoint behaviors;
-*/
+ */
 int tlsf_get_stats(tlsf_t *t, tlsf_stats_t *stats);
 
 #ifdef __cplusplus
