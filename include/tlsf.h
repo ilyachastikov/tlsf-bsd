@@ -146,6 +146,7 @@ extern "C" {
 #define tlsf_pool_init _TLSF_ABI(tlsf_pool_init)
 #define tlsf_pool_reset _TLSF_ABI(tlsf_pool_reset)
 #define tlsf_malloc _TLSF_ABI(tlsf_malloc)
+#define tlsf_calloc _TLSF_ABI(tlsf_calloc)
 #define tlsf_realloc _TLSF_ABI(tlsf_realloc)
 #define tlsf_free _TLSF_ABI(tlsf_free)
 #define tlsf_usable_size _TLSF_ABI(tlsf_usable_size)
@@ -405,6 +406,25 @@ void tlsf_pool_reset(tlsf_t *t);
   ensures \result == \null || \valid(((char *)\result) + (0 .. size - 1));
  */
 void *tlsf_malloc(tlsf_t *t, size_t size);
+
+/**
+ * Allocate zero-initialized memory for an array.
+ *
+ * @t : The TLSF allocator instance
+ * @nmemb : Number of array elements
+ * @size : Size of each element
+ *
+ * Return Pointer to at least @nmemb * @size zeroed bytes, or NULL if the
+ * multiplication overflows or allocation fails. A zero total size returns a
+ * unique minimum-sized allocation, consistent with tlsf_malloc().
+ */
+/*@
+  requires \valid(t);
+  ensures nmemb != 0 && size > SIZE_MAX / nmemb ==> \result == \null;
+  ensures \result == \null ||
+    \valid(((char *)\result) + (0 .. nmemb * size - 1));
+ */
+void *tlsf_calloc(tlsf_t *t, size_t nmemb, size_t size);
 
 /**
  * Resize an existing allocation, preserving its contents up to the smaller of

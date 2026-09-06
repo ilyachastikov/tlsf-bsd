@@ -1592,6 +1592,18 @@ void *tlsf_malloc(tlsf_t *t, size_t size)
     return block_use(t, block, size);
 }
 
+void *tlsf_calloc(tlsf_t *t, size_t nmemb, size_t size)
+{
+    if (UNLIKELY(nmemb && size > SIZE_MAX / nmemb))
+        return NULL;
+
+    size *= nmemb;
+    void *mem = tlsf_malloc(t, size);
+    if (mem)
+        memset(mem, 0, size);
+    return mem;
+}
+
 /* The bound below subtracts 'align' and the block struct from TLSF_MAX_SIZE,
  * and that subtraction leans on the power-of-two test two lines above it: the
  * largest power of two not exceeding TLSF_MAX_SIZE is under half of it, which

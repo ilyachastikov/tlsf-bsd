@@ -12,9 +12,9 @@ FRAMAC ?= frama-c
 #
 # Read the goal count for what it is. This list is a subset of the functions
 # defined in src/tlsf.c, and tlsf_pool_reset is the only public entry point on
-# it. tlsf_malloc, tlsf_free, tlsf_realloc, tlsf_aalloc, tlsf_pool_init,
-# tlsf_append_pool, tlsf_usable_size, tlsf_check and tlsf_get_stats are all
-# unproved, as are the internal arena helpers they call.
+# it. tlsf_malloc, tlsf_calloc, tlsf_free, tlsf_realloc, tlsf_aalloc,
+# tlsf_pool_init, tlsf_append_pool, tlsf_usable_size, tlsf_check and
+# tlsf_get_stats are all unproved, as are the internal arena helpers they call.
 # Several listed helpers also have no postcondition, which means "proved" is
 # "cannot fault", not "returns the right answer": injecting a real bug into
 # align_offset still yields a fully proved run, while the same injection into

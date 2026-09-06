@@ -387,7 +387,7 @@ Frama-C's WP plugin with runtime-error generation over the list in
 
 Read the result for what it is. The list is a subset of the functions in the
 file, and `tlsf_pool_reset` is the only public entry point on it: `tlsf_malloc`,
-`tlsf_free`, `tlsf_realloc`, `tlsf_aalloc`, `tlsf_pool_init`,
+`tlsf_calloc`, `tlsf_free`, `tlsf_realloc`, `tlsf_aalloc`, `tlsf_pool_init`,
 `tlsf_append_pool`, `tlsf_usable_size`, `tlsf_check` and `tlsf_get_stats` are
 all unproved, as are the arena helpers they call. Because no caller of the
 proved helpers is in the list, every `requires` is an assumed hypothesis rather

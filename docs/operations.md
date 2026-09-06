@@ -209,6 +209,7 @@ caller layered on top will run.
 | Operation | Cost | Note |
 |-----------|------|------|
 | `tlsf_malloc` | O(1) | two bitmap scans, one unlink, at most one split |
+| `tlsf_calloc` | O(1) + O(bytes) | `tlsf_malloc` plus zeroing the requested bytes |
 | `tlsf_free` | O(1) | at most two merges, one insert |
 | `tlsf_realloc` | O(1) forward or shrink | backward growth and relocation each copy the payload once |
 | `tlsf_aalloc` | O(1) | one extra split at the front |
