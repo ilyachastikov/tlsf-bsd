@@ -112,9 +112,11 @@ answer". The `WP_FUNCTIONS` list in the Makefile states the exact scope.
 /* Dynamic pool (auto-growing): user must define tlsf_resize() */
 tlsf_t t = TLSF_INIT;
 void *p = tlsf_malloc(&t, 256);
+void *z = tlsf_calloc(&t, 4, 64);
 void *q = tlsf_aalloc(&t, 64, 256);   /* 64-byte aligned */
 p = tlsf_realloc(&t, p, 512);
 tlsf_free(&t, p);
+tlsf_free(&t, z);
 tlsf_free(&t, q);
 
 /* Static pool (fixed-size): no tlsf_resize() needed */
@@ -130,6 +132,7 @@ tlsf_free(&s, r);
 | Function | Description |
 |----------|-------------|
 | `tlsf_malloc(t, size)` | Allocate `size` bytes. Zero `size` returns a unique minimum-sized block. |
+| `tlsf_calloc(t, nmemb, size)` | Allocate an array and zero its requested bytes. Multiplication overflow returns NULL. |
 | `tlsf_free(t, ptr)` | Free a previously allocated block. NULL is a no-op. |
 | `tlsf_realloc(t, ptr, size)` | Resize allocation. Tries in-place expansion before relocating. |
 | `tlsf_aalloc(t, align, size)` | Allocate with alignment. `align` must be a power of two. |
