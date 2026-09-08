@@ -330,13 +330,15 @@ INLINE uint32_t log2floor(size_t x)
     return (uint32_t) (63 -
                        (uint32_t) _CountLeadingZeros64((unsigned long long) x));
 #elif defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
-    (_TLSF_SIZE_WIDTH == 64) && defined(_M_X64) && _MSC_VER >= 1500
+    (_TLSF_SIZE_WIDTH == 64) && defined(_M_X64) && _MSC_VER >= 1500 &&      \
+    defined(__AVX2__)
     return (uint32_t) (63 - (uint32_t) __lzcnt64((unsigned long long) x));
 #elif defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
     (_TLSF_SIZE_WIDTH == 32) && defined(_M_ARM) && _MSC_VER >= 1912
     return (uint32_t) (31 - (uint32_t) _CountLeadingZeros((unsigned long) x));
 #elif defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
-    (_TLSF_SIZE_WIDTH == 32) && defined(_M_IX86) && _MSC_VER >= 1500
+    (_TLSF_SIZE_WIDTH == 32) && defined(_M_IX86) && _MSC_VER >= 1500 &&     \
+    defined(__AVX2__)
     return (uint32_t) (31 - (uint32_t) __lzcnt((unsigned long) x));
 #elif defined(TLSF_MSVC_BITSCAN)
     /* Zero-initialized: the intrinsic leaves index untouched when x is 0, and
