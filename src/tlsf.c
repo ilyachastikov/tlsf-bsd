@@ -303,9 +303,7 @@ INLINE uint32_t bitmap_ffs(uint32_t x)
     return (uint32_t) _tzcnt_u32(x);
 #elif defined(TLSF_MSVC_BITSCAN) && TLSF_MSVC_BITSCAN >= 2 && \
     (defined(_M_ARM64) || defined(_M_ARM)) && _MSC_VER >= 1936
-    unsigned long index;
-    _CountTrailingZeros(&index, x);
-    return (uint32_t) index;
+    return (uint32_t) _CountTrailingZeros((unsigned long) x);
 #elif defined(TLSF_MSVC_BITSCAN)
     unsigned long index;
     return _BitScanForward(&index, x) ? (uint32_t) index : 0;
