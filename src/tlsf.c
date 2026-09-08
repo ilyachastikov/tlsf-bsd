@@ -15,11 +15,32 @@
  * (IAR, Green Hills, TI, ARM Compiler 5) fall through to the portable
  * implementations below, which are fixed-step and therefore still O(1). Define
  * TLSF_NO_INTRINSICS to force that path; CI uses it to test it.
+ * For MSVC TLSF_MSVC_MODERN_INTRINSICS macro can be defined for using
+ * modern intrinsics. For GCC/Clang it is need to use compilation flags for
+ * this. For lzcnt intrinsics -mlzcnt flag must be used. For tzcnt -mbmi must be
+ * used. Also it can be set by use -march=haswell flag. For ARM is no need to
+ * use any special compilation flags.
  */
+#if defined(_MSC_VER)
+#if defined(_M_X64) || defined(_M_IX86)
+#if _MSC_VER >= 1500
+#define TLSF_MSVC_MODERN_INTRINSICS_COMPATIBLE
+#endif
+#elif defined(_M_ARM64) || defined(_M_ARM)
+#if _MSC_VER >= 1912
+#define TLSF_MSVC_MODERN_INTRINSICS_COMPATIBLE
+#endif
+#endif
+#endif
 #ifndef TLSF_NO_INTRINSICS
 #if defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__) || \
     defined(__clang__)
 #define TLSF_BUILTIN_BITSCAN 1
+#elif defined(_MSC_VER) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
+    defined(TLSF_MSVC_MODERN_INTRINSICS_COMPATIBLE)
+#define TLSF_MSVC_BITSCAN 3
+#elif defined(_MSC_VER) && defined(TLSF_MSVC_MODERN_INTRINSICS)
+#define TLSF_MSVC_BITSCAN 2
 #elif defined(_MSC_VER)
 #define TLSF_MSVC_BITSCAN 1
 #endif
@@ -277,6 +298,14 @@ INLINE uint32_t bitmap_ffs(uint32_t x)
     ASSERT(x, "no set bit found");
 #if defined(TLSF_BUILTIN_BITSCAN)
     return (uint32_t) __builtin_ctz(x);
+#elif defined(TLSF_MSVC_BITSCAN) && TLSF_MSVC_BITSCAN >= 2 && \
+    (defined(_M_X64) || defined(_M_IX86)) && _MSC_VER >= 1700
+    return (uint32_t) _tzcnt_u32(x);
+#elif defined(TLSF_MSVC_BITSCAN) && TLSF_MSVC_BITSCAN >= 2 && \
+    (defined(_M_ARM64) || defined(_M_ARM)) && _MSC_VER >= 1936
+    unsigned long index;
+    _CountTrailingZeros(&index, x);
+    return (uint32_t) index;
 #elif defined(TLSF_MSVC_BITSCAN)
     unsigned long index;
     return _BitScanForward(&index, x) ? (uint32_t) index : 0;
@@ -313,6 +342,21 @@ INLINE uint32_t log2floor(size_t x)
     return (uint32_t) (63 - (uint32_t) __builtin_clzll((unsigned long long) x));
 #else
     return (uint32_t) (31 - (uint32_t) __builtin_clzl((unsigned long) x));
+#endif
+#elif defined(TLSF_MSVC_BITSCAN) && TLSF_MSVC_BITSCAN == 3
+#if _TLSF_SIZE_WIDTH == 64
+#if defined(_M_ARM64)
+    return (uint32_t) (63 -
+                       (uint32_t) _CountLeadingZeros64((unsigned long long) x));
+#else
+    return (uint32_t) (63 - (uint32_t) __lzcnt64((unsigned long long) x));
+#endif
+#else
+#if defined(_M_ARM)
+    return (uint32_t) (31 - (uint32_t) _CountLeadingZeros((unsigned long) x));
+#else
+    return (uint32_t) (31 - (uint32_t) __lzcnt((unsigned long) x));
+#endif
 #endif
 #elif defined(TLSF_MSVC_BITSCAN)
     /* Zero-initialized: the intrinsic leaves index untouched when x is 0, and
