@@ -39,6 +39,10 @@
 #include <time.h>
 #endif
 
+#if defined(_MSC_VER)
+#include <malloc.h>
+#endif
+
 #include "tlsf.h"
 #include "tlsf_getopt.h"
 
