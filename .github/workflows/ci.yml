@@ -354,6 +354,15 @@ jobs:
       - name: Run Benchmark TLSF
         run: |
           .\bench_tlsf.exe -l 10000 -i 3 -w 1
+      - name: Compile AVX2/Modern TLSF Object with MSVC
+        run: |
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /arch:AVX2 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK /DTLSF_MSVC_MODERN_INTRINSICS /c src\tlsf.c /Fo:tlsf_avx2.obj
+      - name: Compile Benchmark TLSF with MSVC (AVX2)
+        run: |
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /arch:AVX2 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK /DTLSF_MSVC_MODERN_INTRINSICS tests\bench.c tlsf_avx2.obj /Fe:bench_tlsf_avx2.exe /link Psapi.lib
+      - name: Run Benchmark TLSF (AVX2)
+        run: |
+          .\bench_tlsf_avx2.exe -l 10000 -i 3 -w 1
       - name: Compile WCET TLSF with MSVC
         run: |
           cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\wcet.c tlsf.obj /Fe:wcet_tlsf.exe
