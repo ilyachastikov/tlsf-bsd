@@ -289,7 +289,7 @@ jobs:
       - name: Compile AVX2/Modern Multi-Threaded TLSF with MSVC (C11)
         run: |
           cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /arch:AVX2 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK /DTLSF_C11_THREADS /DTLSF_MSVC_MODERN_INTRINSICS src\tlsf_thread.c tests\test_thread.c tlsf_avx2.obj /Fe:test_thread_avx2.exe
-      - name: Run Multi-Threaded Tests
+      - name: Run AVX2/Modern Multi-Threaded Tests
         run: |
           .\test_thread_avx2.exe
       # Neither step below passes /DTLSF_C11_THREADS, and that is the test: the
