@@ -46,7 +46,7 @@
 #include "tlsf.h"
 #include "tlsf_getopt.h"
 
-#if defined defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L) && \
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L) && \
     !defined(_MSC_VER)
 static inline size_t tlsf_internal_align_size(size_t size, size_t alignment)
 {
