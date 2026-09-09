@@ -49,16 +49,20 @@
 #elif (defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__) || \
        defined(__clang__)) &&                                               \
     defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
-#define TLSF_ALIGNED_MALLOC(size, alignment) \
-    (aligned_alloc((alignment), (size)))
+#define TLSF_ALIGNED_MALLOC(size, alignment)                       \
+    (aligned_alloc((alignment),                                    \
+                   (((size_t) (size) + (size_t) (alignment) - 1) & \
+                    ~((size_t) (alignment) - 1))))
 #define TLSF_ALIGNED_FREE(ptr) (free((ptr)))
 #elif defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__) || \
     defined(__clang__)
 #define TLSF_ALIGNED_MALLOC(size, alignment) (memalign((alignment), (size)))
 #define TLSF_ALIGNED_FREE(ptr) (free((ptr)))
 #elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
-#define TLSF_ALIGNED_MALLOC(size, alignment) \
-    (aligned_alloc((alignment), (size)))
+#define TLSF_ALIGNED_MALLOC(size, alignment)                       \
+    (aligned_alloc((alignment),                                    \
+                   (((size_t) (size) + (size_t) (alignment) - 1) & \
+                    ~((size_t) (alignment) - 1))))
 #define TLSF_ALIGNED_FREE(ptr) (free((ptr)))
 #else
 #define TLSF_ALIGNED_MALLOC(size, alignment) (malloc((size)))
