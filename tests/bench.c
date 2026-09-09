@@ -478,6 +478,11 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    if (num_blks > SIZE_MAX / sizeof(void *)) {
+        fprintf(stderr, "Block array size overflow\n");
+        TLSF_ALIGNED_FREE(mem);
+        return 1;
+    }
     size_t blk_size = num_blks * sizeof(void *);
     void **blk_array =
         (void **) TLSF_ALIGNED_MALLOC(blk_size, TLSF_ARCH_ALIGNMENT);
