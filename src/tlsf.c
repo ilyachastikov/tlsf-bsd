@@ -15,11 +15,12 @@
  * (IAR, Green Hills, TI, ARM Compiler 5) fall through to the portable
  * implementations below, which are fixed-step and therefore still O(1). Define
  * TLSF_NO_INTRINSICS to force that path; CI uses it to test it.
- * For MSVC TLSF_MSVC_MODERN_INTRINSICS macro can be defined for using
- * modern intrinsics. For GCC/Clang it is need to use compilation flags for
- * this. For lzcnt intrinsics -mlzcnt flag must be used. For tzcnt -mbmi must be
- * used. Also it can be set by use -march=haswell flag. For ARM is no need to
- * use any special compilation flags.
+ * For MSVC, define TLSF_MSVC_MODERN_INTRINSICS to select tzcnt and lzcnt
+ * instead. That makes the object require a CPU with BMI1 and ABM, since MSVC
+ * emits both unconditionally and lzcnt decodes as bsr on a CPU without it.
+ * GCC and Clang steer the same choice from the command line rather than from
+ * a macro: -mbmi for tzcnt, -mlzcnt for lzcnt, or -march=haswell for both.
+ * ARM needs no such flag.
  */
 #ifndef TLSF_NO_INTRINSICS
 #if defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__) || \
