@@ -16,11 +16,10 @@
  * implementations below, which are fixed-step and therefore still O(1). Define
  * TLSF_NO_INTRINSICS to force that path; CI uses it to test it.
  * For MSVC, define TLSF_MSVC_MODERN_INTRINSICS to select modern bit scans.
- * On x86/x64, tzcnt is selected by the macro and lzcnt additionally requires
- * __AVX2__; ARM selects the corresponding Count* intrinsics instead.
- * GCC and Clang steer the same choice from the command line rather than from
- * a macro: -mbmi for tzcnt, -mlzcnt for lzcnt, or -march=haswell for both.
- * ARM needs no such flag.
+ * On x86/x64, tzcnt and lzcnt is selected by the macro; ARM selects the
+ * corresponding Count* intrinsics instead. GCC and Clang steer the same choice
+ * from the command line rather than from a macro: -mbmi for tzcnt, -mlzcnt for
+ * lzcnt, or -march=haswell for both. ARM needs no such flag.
  */
 #ifndef TLSF_NO_INTRINSICS
 #if defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__) || \
