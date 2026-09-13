@@ -22,6 +22,7 @@
  * a macro: -mbmi for tzcnt, -mlzcnt for lzcnt, or -march=haswell for both.
  * ARM needs no such flag.
  */
+#define TLSF_MSVC_MODERN_INTRINSICS
 #ifndef TLSF_NO_INTRINSICS
 #if defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__) || \
     defined(__clang__)
@@ -273,6 +274,26 @@ TLSF_LINKER_COMMENT_(TLSF_RESIZE_ALTERNATENAME)
 #undef TLSF_STRINGIFY_
 #endif
 
+#if defined(TLSF_MSVC_MODERN_INTRINSICS) && defined(_MSC_VER) && \
+    _MSC_VER >= 1500 && (defined(_M_X64) || defined(_M_IX86))
+/* Function for detecting lzcnt support */
+void validate_lzcnt_feature(void)
+{
+    int cpuInfo[4];
+    __cpuidex(cpuInfo, 7, 0);
+    bool has_lzcnt = (cpuInfo[1] & (1 << 3)) != 0;
+    if (!has_lzcnt) {
+        __fastfail(7);
+    }
+}
+
+/* Register function for detecting lzcnt instruction support in CRT init section
+ */
+#pragma section(".CRT$XCU", read)
+__declspec(allocate(".CRT$XCU")) void (*p_init_code)(void) =
+    validate_lzcnt_feature;
+#endif
+
 /*@
   requires x != 0;
   assigns \nothing;
@@ -331,15 +352,13 @@ INLINE uint32_t log2floor(size_t x)
     return (uint32_t) (63 -
                        (uint32_t) _CountLeadingZeros64((unsigned long long) x));
 #elif defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
-    (_TLSF_SIZE_WIDTH == 64) && defined(_M_X64) && _MSC_VER >= 1500 &&      \
-    defined(__AVX2__)
+    (_TLSF_SIZE_WIDTH == 64) && defined(_M_X64) && _MSC_VER >= 1500
     return (uint32_t) (63 - (uint32_t) __lzcnt64((unsigned long long) x));
 #elif defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
     (_TLSF_SIZE_WIDTH == 32) && defined(_M_ARM) && _MSC_VER >= 1912
     return (uint32_t) (31 - (uint32_t) _CountLeadingZeros((unsigned long) x));
 #elif defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
-    (_TLSF_SIZE_WIDTH == 32) && defined(_M_IX86) && _MSC_VER >= 1500 &&     \
-    defined(__AVX2__)
+    (_TLSF_SIZE_WIDTH == 32) && defined(_M_IX86) && _MSC_VER >= 1500
     return (uint32_t) (31 - (uint32_t) __lzcnt((unsigned long) x));
 #elif defined(TLSF_MSVC_BITSCAN)
     /* Zero-initialized: the intrinsic leaves index untouched when x is 0, and
