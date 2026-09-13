@@ -276,7 +276,7 @@ TLSF_LINKER_COMMENT_(TLSF_RESIZE_ALTERNATENAME)
 #if defined(TLSF_MSVC_MODERN_INTRINSICS) && defined(_MSC_VER) && \
     _MSC_VER >= 1500 && (defined(_M_X64) || defined(_M_IX86))
 /* Function for detecting lzcnt support */
-void validate_lzcnt_feature(void)
+static void validate_lzcnt_feature(void)
 {
     int cpuInfo[4];
     __cpuidex(cpuInfo, 7, 0);
@@ -289,7 +289,7 @@ void validate_lzcnt_feature(void)
 /* Register function for detecting lzcnt instruction support in CRT init section
  */
 #pragma section(".CRT$XCU", read)
-__declspec(allocate(".CRT$XCU")) void (*p_init_code)(void) =
+__declspec(allocate(".CRT$XCU")) static void (*p_init_code)(void) =
     validate_lzcnt_feature;
 #endif
 
