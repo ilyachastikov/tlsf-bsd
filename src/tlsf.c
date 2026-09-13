@@ -22,7 +22,6 @@
  * a macro: -mbmi for tzcnt, -mlzcnt for lzcnt, or -march=haswell for both.
  * ARM needs no such flag.
  */
-#define TLSF_MSVC_MODERN_INTRINSICS
 #ifndef TLSF_NO_INTRINSICS
 #if defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__) || \
     defined(__clang__)
