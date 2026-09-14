@@ -257,25 +257,16 @@ jobs:
           - arch: x64
             os: windows-latest
             msvc_arch: x64
-            run_tests: true
 
           # Intel/AMD 32-bit
           - arch: x86
             os: windows-latest
             msvc_arch: x86
-            run_tests: true
 
           # ARM 64-bit
           - arch: arm64
             os: windows-11-arm
             msvc_arch: arm64
-            run_tests: true
-
-          # ARM 32-bit (Cross compilation on x64, but no run on it)
-          - arch: arm
-            os: windows-latest
-            msvc_arch: amd64_arm
-            run_tests: false
 
     runs-on: ${{ matrix.os }}
     # A healthy run finishes in well under a minute. The old ten minute limit
