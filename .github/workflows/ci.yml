@@ -300,7 +300,7 @@ jobs:
           cl.exe /c /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK src\tlsf.c /Fo:tlsf_${{ matrix.arch }}.obj
       - name: Compile Single-Threaded TLSF with MSVC
         run: |
-          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\test.c tlsf_${{ matrix.arch }}.obj.obj /Fe:test_tlsf_${{ matrix.arch }}.exe
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\test.c tlsf_${{ matrix.arch }}.obj /Fe:test_tlsf_${{ matrix.arch }}.exe
       - name: Run Single-Threaded Tests
         run: |
           .\test_tlsf_${{ matrix.arch }}.exe
