@@ -532,6 +532,12 @@ int main(int argc, char **argv)
     memset(blk_array, 0, blk_size);
 
     /* Allocate samples array */
+    if (iterations > SIZE_MAX / sizeof(double)) {
+        fprintf(stderr, "Samples array size overflow\n");
+        TLSF_ALIGNED_FREE(blk_array);
+        TLSF_ALIGNED_FREE(mem);
+        return 1;
+    }
     double *samples = (double *) TLSF_ALIGNED_MALLOC(
         iterations * sizeof(double), TLSF_ARCH_ALIGNMENT);
     if (!samples) {
