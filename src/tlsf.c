@@ -16,7 +16,15 @@
  * implementations below, which are fixed-step and therefore still O(1). Define
  * TLSF_NO_INTRINSICS to force that path; CI uses it to test it.
  * For MSVC, define TLSF_MSVC_MODERN_INTRINSICS to select modern bit scans.
- * On x86/x64, tzcnt and lzcnt is selected by the macro; ARM selects the
+ * WARNING: Enabling this macro creates a compile-time contract; the resulting
+ * binary WILL REQUIRES a CPU with hardware BMI1 (tzcnt) and ABM (lzcnt)
+ * support. Running it on older CPUs will cause silent memory corruption in
+ * mapping(). Toolset requirements for MSVC:
+ * - x86/x64 target requires MSVC 2012 (_MSC_VER >= 1700) or newer; older
+ * toolsets silently fall back to BSF/BSR without any diagnostics.
+ * - ARM/ARM64 target requires MSVC 2022 (_MSC_VER >= 1936) or newer for the
+ *   corresponding Count* trailing and leading zero intrinsics.
+ * On x86/x64, tzcnt and lzcnt are selected by the macro; ARM selects the
  * corresponding Count* intrinsics instead. GCC and Clang steer the same choice
  * from the command line rather than from a macro: -mbmi for tzcnt, -mlzcnt for
  * lzcnt, or -march=haswell for both. ARM needs no such flag.
