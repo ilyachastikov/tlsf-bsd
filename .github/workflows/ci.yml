@@ -374,7 +374,7 @@ jobs:
       # 'tlsf_thread.obj' in the working directory as a side effect.
       - name: Compile Multi-Threaded TLSF with MSVC (native lock)
         run: |
-          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK src\tlsf_thread_${{ matrix.arch }}.c tests\test_thread_${{ matrix.arch }}.c tlsf.obj /Fe:test_thread_native_${{ matrix.arch }}.exe
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK src\tlsf_thread.c tests\test_thread.c tlsf_${{ matrix.arch }}.obj /Fe:test_thread_native_${{ matrix.arch }}.exe
       - name: Run Multi-Threaded Tests (native lock)
         run: |
           .\test_thread_native_${{ matrix.arch }}.exe
