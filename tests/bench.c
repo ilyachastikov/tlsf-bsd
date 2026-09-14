@@ -111,9 +111,9 @@ static inline size_t tlsf_internal_align_size(size_t size, size_t alignment)
 #define TLSF_ALIGNED_FREE(ptr) (free((ptr)))
 #endif
 
-#if defined(__AVX512F__) || defined(_M_AVX512)
+#if defined(__AVX512F__)
 #define TLSF_ARCH_ALIGNMENT 64
-#elif defined(__AVX2__) || defined(__AVX__) || defined(_M_AVX)
+#elif defined(__AVX2__) || defined(__AVX__)
 #define TLSF_ARCH_ALIGNMENT 32
 #elif defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(_M_ARM) || \
     defined(_M_ARM64)
