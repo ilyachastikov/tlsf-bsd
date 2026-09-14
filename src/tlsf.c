@@ -16,10 +16,11 @@
  * implementations below, which are fixed-step and therefore still O(1). Define
  * TLSF_NO_INTRINSICS to force that path; CI uses it to test it.
  * For MSVC, define TLSF_MSVC_MODERN_INTRINSICS to select modern bit scans.
- * WARNING: Enabling this macro creates a compile-time contract; the resulting
- * binary WILL REQUIRES a CPU with hardware BMI1 (tzcnt) and ABM (lzcnt)
- * support. Running it on older CPUs will cause silent memory corruption in
- * mapping(). Toolset requirements for MSVC:
+ * WARNING: On x86/x64 with a supported MSVC toolset, enabling this macro
+ * requires a CPU with hardware BMI1 (tzcnt) and ABM (lzcnt) support.
+ * Running it on older x86/x64 CPUs can cause silent memory corruption in
+ * mapping(). ARM/ARM64 builds use the Count* intrinsics instead and do not
+ * require those x86 features. Toolset requirements for MSVC:
  * - x86/x64 target requires MSVC 2012 (_MSC_VER >= 1700) or newer; older
  * toolsets silently fall back to BSF/BSR without any diagnostics.
  * - ARM/ARM64 target requires MSVC 2022 (_MSC_VER >= 1936) or newer for the
