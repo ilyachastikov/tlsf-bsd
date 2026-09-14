@@ -67,7 +67,7 @@ static inline void *tlsf_internal_aligned_alloc(size_t size, size_t alignment)
     return aligned_alloc(alignment, aligned_size);
 }
 #elif !defined(_MSC_VER) && !defined(__GNUC__) && !defined(__MINGW32__) && \
-    !defined(__MINGW64__) !defined(__clang__))
+    !defined(__MINGW64__) && !defined(__clang__)
 static inline size_t tlsf_internal_align_size(size_t size, size_t alignment)
 {
     if (alignment == 0)
