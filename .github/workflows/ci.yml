@@ -398,7 +398,7 @@ jobs:
           .\test_pmr_${{ matrix.arch }}.exe
       - name: Compile Benchmark TLSF with MSVC
         run: |
-          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\bench.c tlsf.obj /Fe:bench_tlsf_${{ matrix.arch }}.exe /link Psapi.lib
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\bench.c tlsf_${{ matrix.arch }}.obj /Fe:bench_tlsf_${{ matrix.arch }}.exe /link Psapi.lib
       - name: Run Benchmark TLSF
         run: |
           .\bench_tlsf_${{ matrix.arch }}.exe -l 10000 -i 3 -w 1
