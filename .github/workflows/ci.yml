@@ -274,9 +274,6 @@ jobs:
     # the first one had already shown.
     timeout-minutes: 5
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - uses: actions/checkout@v7
       - name: Setup MSVC Developer Command Prompt (${{ matrix.arch }})
         uses: ilammy/msvc-dev-cmd@v1
