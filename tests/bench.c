@@ -115,10 +115,8 @@ static inline void *tlsf_internal_aligned_alloc(size_t size, size_t alignment)
 #elif defined(__AVX2__) || defined(__AVX__)
 #define TLSF_ARCH_ALIGNMENT 32
 #elif defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(_M_ARM) || \
-    defined(_M_ARM64)
-#define TLSF_ARCH_ALIGNMENT 16
-#elif defined(__SSE__) || defined(__SSE2__) || defined(_M_X64) || \
-    (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+    defined(_M_ARM64) || defined(__SSE__) || defined(__SSE2__) ||        \
+    defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
 #define TLSF_ARCH_ALIGNMENT 16
 #else
 #define TLSF_ARCH_ALIGNMENT sizeof(void *)
