@@ -46,8 +46,8 @@
 #include "tlsf.h"
 #include "tlsf_getopt.h"
 
-#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L) && \
-    !defined(_MSC_VER)
+#ifndef _MSC_VER
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
 static inline size_t tlsf_internal_align_size(size_t size, size_t alignment)
 {
     if (alignment == 0)
@@ -66,8 +66,20 @@ static inline void *tlsf_internal_aligned_alloc(size_t size, size_t alignment)
     }
     return aligned_alloc(alignment, aligned_size);
 }
-#elif !defined(_MSC_VER) && !defined(__GNUC__) && !defined(__MINGW32__) && \
-    !defined(__MINGW64__) && !defined(__clang__)
+#elif defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__) || \
+    defined(__clang__)
+static inline void *tlsf_internal_aligned_alloc(size_t size, size_t alignment)
+{
+    /* posix_memalign requires alignment is a multiple of sizeof(void*) */
+    size_t adj_alignment =
+        alignment < sizeof(void *) ? sizeof(void *) : alignment;
+    void *ptr = NULL;
+    if (posix_memalign(&ptr, adj_alignment, size) != 0) {
+        return NULL;
+    }
+    return ptr;
+}
+#else
 static inline size_t tlsf_internal_align_size(size_t size, size_t alignment)
 {
     if (alignment == 0)
@@ -76,35 +88,22 @@ static inline size_t tlsf_internal_align_size(size_t size, size_t alignment)
         return 0;
     }
     return (size + alignment - 1) & ~(alignment - 1);
+}
 
-    static inline void *tlsf_internal_aligned_alloc(size_t size,
-                                                    size_t alignment)
-    {
-        size_t aligned_size = tlsf_internal_align_size(size, alignment);
-        if (aligned_size == 0)
-            return NULL;
-        return malloc(aligned_size);
-    }
+static inline void *tlsf_internal_aligned_alloc(size_t size, size_t alignment)
+{
+    size_t aligned_size = tlsf_internal_align_size(size, alignment);
+    if (aligned_size == 0)
+        return NULL;
+    return malloc(aligned_size);
+}
+#endif
 #endif
 
 #if defined(_MSC_VER)
 #define TLSF_ALIGNED_MALLOC(size, alignment) \
     (_aligned_malloc((size), (alignment)))
 #define TLSF_ALIGNED_FREE(ptr) (_aligned_free((ptr)))
-#elif (defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__) || \
-       defined(__clang__)) &&                                               \
-    defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
-#define TLSF_ALIGNED_MALLOC(size, alignment) \
-    (tlsf_internal_aligned_alloc((size), (alignment)))
-#define TLSF_ALIGNED_FREE(ptr) (free((ptr)))
-#elif defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__) || \
-    defined(__clang__)
-#define TLSF_ALIGNED_MALLOC(size, alignment) (memalign((alignment), (size)))
-#define TLSF_ALIGNED_FREE(ptr) (free((ptr)))
-#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
-#define TLSF_ALIGNED_MALLOC(size, alignment) \
-    (tlsf_internal_aligned_alloc((size), (alignment)))
-#define TLSF_ALIGNED_FREE(ptr) (free((ptr)))
 #else
 #define TLSF_ALIGNED_MALLOC(size, alignment) \
     (tlsf_internal_aligned_alloc((size), (alignment)))
@@ -159,19 +158,19 @@ static int get_systemmem_usage(uint64_t *usage_kbytes)
 
     return -1;
 #else
-        struct rusage usage_info;
-        if (getrusage(RUSAGE_SELF, &usage_info) != 0) {
-            return -1;
-        }
+    struct rusage usage_info;
+    if (getrusage(RUSAGE_SELF, &usage_info) != 0) {
+        return -1;
+    }
 
-        /* In Linux ru_maxrss is in KB but in MacOS in bytes*/
+    /* In Linux ru_maxrss is in KB but in MacOS in bytes*/
 #if defined(__APPLE__)
-        *usage_kbytes = (uint64_t) usage_info.ru_maxrss / 1024ULL;
+    *usage_kbytes = (uint64_t) usage_info.ru_maxrss / 1024ULL;
 #else
-        *usage_kbytes = (uint64_t) usage_info.ru_maxrss;
+    *usage_kbytes = (uint64_t) usage_info.ru_maxrss;
 #endif
 
-        return 0;
+    return 0;
 #endif
 }
 
@@ -199,26 +198,26 @@ static inline uint64_t get_time_ns(void)
 #endif
 }
 #elif defined(_WIN32) || defined(WIN32) || defined(__WIN32__) || defined(_WIN64)
-    static uint64_t qpc_frequency;
+static uint64_t qpc_frequency;
 
-    static inline uint64_t get_time_ns(void)
-    {
-        if (!qpc_frequency) {
-            LARGE_INTEGER frequency;
-            QueryPerformanceFrequency(&frequency);
-            qpc_frequency = (uint64_t) frequency.QuadPart;
-        }
-
-        LARGE_INTEGER count;
-        QueryPerformanceCounter(&count);
-
-        uint64_t ticks = (uint64_t) count.QuadPart;
-        uint64_t seconds = ticks / qpc_frequency;
-        uint64_t remainder = ticks % qpc_frequency;
-
-        return (seconds * 1000000000ULL) +
-               (remainder * 1000000000ULL) / qpc_frequency;
+static inline uint64_t get_time_ns(void)
+{
+    if (!qpc_frequency) {
+        LARGE_INTEGER frequency;
+        QueryPerformanceFrequency(&frequency);
+        qpc_frequency = (uint64_t) frequency.QuadPart;
     }
+
+    LARGE_INTEGER count;
+    QueryPerformanceCounter(&count);
+
+    uint64_t ticks = (uint64_t) count.QuadPart;
+    uint64_t seconds = ticks / qpc_frequency;
+    uint64_t remainder = ticks % qpc_frequency;
+
+    return (seconds * 1000000000ULL) +
+           (remainder * 1000000000ULL) / qpc_frequency;
+}
 #else
 static inline uint64_t get_time_ns(void)
 {
