@@ -23,7 +23,7 @@
  * require those x86 features. Toolset requirements for MSVC:
  * - x86/x64 target requires MSVC 2012 (_MSC_VER >= 1700) or newer; older
  * toolsets silently fall back to BSF/BSR without any diagnostics.
- * - ARM/ARM64 target requires MSVC 2022 (_MSC_VER >= 1936) or newer for the
+ * - ARM/ARM64 target requires MSVC 2022 (_MSC_VER >= 1937) or newer for the
  *   corresponding Count* trailing and leading zero intrinsics.
  * On x86/x64, tzcnt and lzcnt are selected by the macro; ARM selects the
  * corresponding Count* intrinsics instead. GCC and Clang steer the same choice
