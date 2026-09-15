@@ -295,7 +295,7 @@ INLINE uint32_t bitmap_ffs(uint32_t x)
     (defined(_M_X64) || defined(_M_IX86)) && _MSC_VER >= 1700
     return (uint32_t) _tzcnt_u32(x);
 #elif defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
-    defined(_M_ARM64) && _MSC_VER >= 1936
+    defined(_M_ARM64) && _MSC_VER >= 1937
     return (uint32_t) _CountTrailingZeros((unsigned long) x);
 #elif defined(TLSF_MSVC_BITSCAN)
     unsigned long index;
@@ -335,7 +335,7 @@ INLINE uint32_t log2floor(size_t x)
     return (uint32_t) (31 - (uint32_t) __builtin_clzl((unsigned long) x));
 #endif
 #elif defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
-    (_TLSF_SIZE_WIDTH == 64) && defined(_M_ARM64) && _MSC_VER >= 1936
+    (_TLSF_SIZE_WIDTH == 64) && defined(_M_ARM64) && _MSC_VER >= 1937
     return (uint32_t) (63 -
                        (uint32_t) _CountLeadingZeros64((unsigned long long) x));
 #elif defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
