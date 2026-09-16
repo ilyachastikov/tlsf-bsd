@@ -15,6 +15,39 @@
  * (IAR, Green Hills, TI, ARM Compiler 5) fall through to the portable
  * implementations below, which are fixed-step and therefore still O(1). Define
  * TLSF_NO_INTRINSICS to force that path; CI uses it to test it.
+ * For MSVC, define TLSF_MSVC_MODERN_INTRINSICS to select modern bit scans.
+ * WARNING: On x86/x64 with a supported MSVC toolset, enabling this macro
+ * requires a CPU with hardware BMI1 (tzcnt) and ABM (lzcnt) support.
+ * Running it on older x86/x64 CPUs can cause silent memory corruption in
+ * mapping(). ARM/ARM64 builds use the Count* intrinsics instead and do not
+ * require those x86 features. Toolset requirements for MSVC:
+ * - x86/x64 target requires MSVC 2012 (_MSC_VER >= 1700) or newer; older
+ *   toolsets silently fall back to BSF/BSR without any diagnostics.
+ * - ARM/ARM64 target requires MSVC 2022 (_MSC_VER >= 1937) or newer for the
+ *   corresponding Count* trailing and leading zero intrinsics.
+ * AUTOMATIC GUARD & NO-CRT COMPILATION (x86/x64 MSVC Only):
+ * - By default, if the standard C Runtime is used (_MT is defined), TLSF
+ * automatically registers a hardware guard in the CRT initialization section
+ * (.CRT$XCU) to verify ABM (lzcnt) support at application startup. If missing,
+ * the binary terminates safely via __fastfail.
+ * - This built-in behavior can be completely disabled by defining the macro
+ *   TLSF_MSVC_CUSTOM_LZCNT_GUARD. This definition is required and used in two
+ * scenarios:
+ *     1. Custom Guard Logic: Alternative validation is required (e.g., to log
+ *        an error message or implement a graceful fallback instead of a hard
+ * crash).
+ *     2. No-CRT Environments: The project is compiled without the standard CRT
+ *        runtime (e.g., shellcode, kernel drivers, or using /NODEFAULTLIB where
+ * _MT is undefined). Since the automatic initialization section cannot be
+ * executed here, compilation will fail with a #error unless
+ * TLSF_MSVC_CUSTOM_LZCNT_GUARD is defined.
+ * - Defining TLSF_MSVC_CUSTOM_LZCNT_GUARD serves as an explicit acknowledgment
+ * that the built-in check is bypassed, transferring the responsibility for
+ * hardware feature validation to the host application's early initialization
+ * stage. On x86/x64, tzcnt and lzcnt are selected by the macro; ARM selects the
+ * corresponding Count* intrinsics instead. GCC and Clang steer the same choice
+ * from the command line rather than from a macro: -mbmi for tzcnt, -mlzcnt for
+ * lzcnt, or -march=haswell for both. ARM needs no such flag.
  */
 #ifndef TLSF_NO_INTRINSICS
 #if defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__) || \
@@ -267,6 +300,46 @@ TLSF_LINKER_COMMENT_(TLSF_RESIZE_ALTERNATENAME)
 #undef TLSF_STRINGIFY_
 #endif
 
+#if defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
+    defined(_MSC_VER) && _MSC_VER >= 1700 &&                              \
+    (defined(_M_X64) || defined(_M_IX86)) && defined(_MT) &&              \
+    !defined(TLSF_MSVC_CUSTOM_LZCNT_GUARD)
+/* Function for detecting lzcnt support */
+static void validate_lzcnt_feature(void)
+{
+    int cpuInfo[4];
+    __cpuid(cpuInfo, 0x80000000);
+    if (cpuInfo[0] < 0x80000001) {
+        __fastfail(7);
+    }
+    __cpuid(cpuInfo, 0x80000001);
+    bool has_lzcnt = (cpuInfo[2] & (1 << 5)) != 0;
+    if (!has_lzcnt) {
+        __fastfail(7);
+    }
+}
+
+/* Register function for detecting lzcnt instruction support in CRT init section
+ */
+#pragma section(".CRT$XCU", read)
+__declspec(allocate(".CRT$XCU")) void (*tlsf_validate_lzcnt_ptr)(void) =
+    validate_lzcnt_feature;
+
+/* Force tlsf_validate_lzcnt_ptr to linker */
+#if defined(_M_X64)
+#pragma comment(linker, "/include:tlsf_validate_lzcnt_ptr")
+#elif defined(_M_IX86)
+#pragma comment(linker, "/include:_tlsf_validate_lzcnt_ptr")
+#endif
+#endif
+
+#if defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
+    defined(_MSC_VER) && _MSC_VER >= 1700 &&                              \
+    (defined(_M_X64) || defined(_M_IX86)) && !defined(_MT) &&             \
+    !defined(TLSF_MSVC_CUSTOM_LZCNT_GUARD)
+#error TLSF: Automatic LZCNT guard requires CRT. Define TLSF_MSVC_CUSTOM_LZCNT_GUARD to explicitly bypass this check and handle hardware validation manually.
+#endif
+
 /*@
   requires x != 0;
   assigns \nothing;
@@ -277,6 +350,12 @@ INLINE uint32_t bitmap_ffs(uint32_t x)
     ASSERT(x, "no set bit found");
 #if defined(TLSF_BUILTIN_BITSCAN)
     return (uint32_t) __builtin_ctz(x);
+#elif defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
+    (defined(_M_X64) || defined(_M_IX86)) && _MSC_VER >= 1700
+    return (uint32_t) _tzcnt_u32(x);
+#elif defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
+    defined(_M_ARM64) && _MSC_VER >= 1937
+    return (uint32_t) _CountTrailingZeros((unsigned long) x);
 #elif defined(TLSF_MSVC_BITSCAN)
     unsigned long index;
     return _BitScanForward(&index, x) ? (uint32_t) index : 0;
@@ -314,6 +393,16 @@ INLINE uint32_t log2floor(size_t x)
 #else
     return (uint32_t) (31 - (uint32_t) __builtin_clzl((unsigned long) x));
 #endif
+#elif defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
+    (_TLSF_SIZE_WIDTH == 64) && defined(_M_ARM64) && _MSC_VER >= 1937
+    return (uint32_t) (63 -
+                       (uint32_t) _CountLeadingZeros64((unsigned long long) x));
+#elif defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
+    (_TLSF_SIZE_WIDTH == 64) && defined(_M_X64) && _MSC_VER >= 1700
+    return (uint32_t) (63 - (uint32_t) __lzcnt64((unsigned long long) x));
+#elif defined(TLSF_MSVC_BITSCAN) && defined(TLSF_MSVC_MODERN_INTRINSICS) && \
+    (_TLSF_SIZE_WIDTH == 32) && defined(_M_IX86) && _MSC_VER >= 1700
+    return (uint32_t) (31 - (uint32_t) __lzcnt((unsigned long) x));
 #elif defined(TLSF_MSVC_BITSCAN)
     /* Zero-initialized: the intrinsic leaves index untouched when x is 0, and
      * ASSERT is compiled out in release builds.

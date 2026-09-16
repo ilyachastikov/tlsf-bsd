@@ -39,8 +39,88 @@
 #include <time.h>
 #endif
 
+#if defined(_MSC_VER)
+#include <malloc.h>
+#endif
+
 #include "tlsf.h"
 #include "tlsf_getopt.h"
+
+#ifndef _MSC_VER
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
+static inline size_t tlsf_internal_align_size(size_t size, size_t alignment)
+{
+    if (alignment == 0)
+        return size;
+    if (size > (SIZE_MAX - alignment + 1)) {
+        return 0;
+    }
+    return (size + alignment - 1) & ~(alignment - 1);
+}
+
+static inline void *tlsf_internal_aligned_alloc(size_t size, size_t alignment)
+{
+    size_t aligned_size = tlsf_internal_align_size(size, alignment);
+    if (aligned_size == 0) {
+        return NULL;
+    }
+    return aligned_alloc(alignment, aligned_size);
+}
+#elif defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__) || \
+    defined(__clang__)
+static inline void *tlsf_internal_aligned_alloc(size_t size, size_t alignment)
+{
+    /* posix_memalign requires alignment is a multiple of sizeof(void*) */
+    size_t adj_alignment =
+        alignment < sizeof(void *) ? sizeof(void *) : alignment;
+    void *ptr = NULL;
+    if (posix_memalign(&ptr, adj_alignment, size) != 0) {
+        return NULL;
+    }
+    return ptr;
+}
+#else
+static inline size_t tlsf_internal_align_size(size_t size, size_t alignment)
+{
+    if (alignment == 0)
+        return size;
+    if (size > (SIZE_MAX - alignment + 1)) {
+        return 0;
+    }
+    return (size + alignment - 1) & ~(alignment - 1);
+}
+
+static inline void *tlsf_internal_aligned_alloc(size_t size, size_t alignment)
+{
+    size_t aligned_size = tlsf_internal_align_size(size, alignment);
+    if (aligned_size == 0)
+        return NULL;
+    return malloc(aligned_size);
+}
+#endif
+#endif
+
+#if defined(_MSC_VER)
+#define TLSF_ALIGNED_MALLOC(size, alignment) \
+    (_aligned_malloc((size), (alignment)))
+#define TLSF_ALIGNED_FREE(ptr) (_aligned_free((ptr)))
+#else
+#define TLSF_ALIGNED_MALLOC(size, alignment) \
+    (tlsf_internal_aligned_alloc((size), (alignment)))
+#define TLSF_ALIGNED_FREE(ptr) (free((ptr)))
+#endif
+
+#if defined(__AVX512F__)
+#define TLSF_ARCH_ALIGNMENT 64
+#elif defined(__AVX2__) || defined(__AVX__)
+#define TLSF_ARCH_ALIGNMENT 32
+#elif defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(_M_ARM) || \
+    defined(_M_ARM64) || defined(__SSE__) || defined(__SSE2__) ||        \
+    defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#define TLSF_ARCH_ALIGNMENT 16
+#else
+#define TLSF_ARCH_ALIGNMENT sizeof(void *)
+#endif
 
 static tlsf_t t = TLSF_INIT_STATIC;
 
@@ -427,25 +507,40 @@ int main(int argc, char **argv)
         return 1;
     }
     max_size = blk_max * num_blks * 2; /* 2x for fragmentation headroom */
-    mem = malloc(max_size);
+    mem = TLSF_ALIGNED_MALLOC(max_size, TLSF_ARCH_ALIGNMENT);
     if (!mem) {
         fprintf(stderr, "Failed to allocate %zu bytes for pool\n", max_size);
         return 1;
     }
 
-    void **blk_array = (void **) calloc(num_blks, sizeof(void *));
-    if (!blk_array) {
-        fprintf(stderr, "Failed to allocate block array\n");
-        free(mem);
+    if (num_blks > SIZE_MAX / sizeof(void *)) {
+        fprintf(stderr, "Block array size overflow\n");
+        TLSF_ALIGNED_FREE(mem);
         return 1;
     }
+    size_t blk_size = num_blks * sizeof(void *);
+    void **blk_array =
+        (void **) TLSF_ALIGNED_MALLOC(blk_size, TLSF_ARCH_ALIGNMENT);
+    if (!blk_array) {
+        fprintf(stderr, "Failed to allocate block array\n");
+        TLSF_ALIGNED_FREE(mem);
+        return 1;
+    }
+    memset(blk_array, 0, blk_size);
 
     /* Allocate samples array */
-    double *samples = (double *) malloc(iterations * sizeof(double));
+    if (iterations > SIZE_MAX / sizeof(double)) {
+        fprintf(stderr, "Samples array size overflow\n");
+        TLSF_ALIGNED_FREE(blk_array);
+        TLSF_ALIGNED_FREE(mem);
+        return 1;
+    }
+    double *samples = (double *) TLSF_ALIGNED_MALLOC(
+        iterations * sizeof(double), TLSF_ARCH_ALIGNMENT);
     if (!samples) {
         fprintf(stderr, "Failed to allocate samples array\n");
-        free(blk_array);
-        free(mem);
+        TLSF_ALIGNED_FREE(blk_array);
+        TLSF_ALIGNED_FREE(mem);
         return 1;
     }
 
@@ -542,9 +637,9 @@ int main(int argc, char **argv)
             printf("  P95/Median ratio: %.2fx\n", stats.p95 / stats.median);
     }
 
-    free(samples);
-    free(blk_array);
-    free(mem);
+    TLSF_ALIGNED_FREE(samples);
+    TLSF_ALIGNED_FREE(blk_array);
+    TLSF_ALIGNED_FREE(mem);
 
     return 0;
 }

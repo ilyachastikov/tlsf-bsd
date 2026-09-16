@@ -249,34 +249,70 @@ jobs:
           su -s /bin/sh opam -c 'opam exec -- make verify'
 
   build-windows-msvc:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Intel/AMD 64-bit
+          - arch: x64
+            os: windows-latest
+            msvc_arch: x64
+
+          # Intel/AMD 32-bit
+          - arch: x86
+            os: windows-latest
+            msvc_arch: x86
+
+          # ARM 64-bit
+          - arch: arm64
+            os: windows-11-arm
+            msvc_arch: arm64
+
+    runs-on: ${{ matrix.os }}
     # A healthy run finishes in well under a minute. The old ten minute limit
     # only ever applied to a hang, where it spent nine of them confirming what
     # the first one had already shown.
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      - name: Setup MSVC Developer Command Prompt
+      - name: Setup MSVC Developer Command Prompt (${{ matrix.arch }})
         uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
       # tlsf.c does not include tlsf_thread.h, so none of the flags below
       # change how it compiles, and every executable can link the same object.
       # Compiling it once instead of once per executable is most of this job's
       # build time.
       - name: Compile TLSF Core with MSVC
         run: |
-          cl.exe /c /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK src\tlsf.c /Fo:tlsf.obj
+          cl.exe /c /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK src\tlsf.c /Fo:tlsf_${{ matrix.arch }}.obj
       - name: Compile Single-Threaded TLSF with MSVC
         run: |
-          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\test.c tlsf.obj /Fe:test_tlsf.exe
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\test.c tlsf_${{ matrix.arch }}.obj /Fe:test_tlsf_${{ matrix.arch }}.exe
       - name: Run Single-Threaded Tests
         run: |
-          .\test_tlsf.exe
+          .\test_tlsf_${{ matrix.arch }}.exe
+      - name: Compile Modern Intrinsics TLSF Object with MSVC
+        run: |
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK /DTLSF_MSVC_MODERN_INTRINSICS /c src\tlsf.c /Fo:tlsf_mi_${{ matrix.arch }}.obj
+      - name: Compile Modern Intrinsics Single-Threaded TLSF with MSVC
+        run: |
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK /DTLSF_MSVC_MODERN_INTRINSICS tests\test.c tlsf_mi_${{ matrix.arch }}.obj /Fe:test_tlsf_mi_${{ matrix.arch }}.exe
+      - name: Run Single-Threaded Tests Modern Intrinsics
+        run: |
+          .\test_tlsf_mi_${{ matrix.arch }}.exe
       - name: Compile Multi-Threaded TLSF with MSVC (C11)
         run: |
-          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK /DTLSF_C11_THREADS src\tlsf_thread.c tests\test_thread.c tlsf.obj /Fe:test_thread.exe
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK /DTLSF_C11_THREADS src\tlsf_thread.c tests\test_thread.c tlsf_${{ matrix.arch }}.obj /Fe:test_thread_${{ matrix.arch }}.exe
       - name: Run Multi-Threaded Tests
         run: |
-          .\test_thread.exe
+          .\test_thread_${{ matrix.arch }}.exe
+      - name: Compile Modern Intrinsics Multi-Threaded TLSF with MSVC (C11)
+        run: |
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK /DTLSF_C11_THREADS /DTLSF_MSVC_MODERN_INTRINSICS src\tlsf_thread.c tests\test_thread.c tlsf_mi_${{ matrix.arch }}.obj /Fe:test_thread_mi_${{ matrix.arch }}.exe
+      - name: Run Modern Intrinsics Multi-Threaded Tests
+        run: |
+          .\test_thread_mi_${{ matrix.arch }}.exe
       # Neither step below passes /DTLSF_C11_THREADS, and that is the test: the
       # C unit and the C++ unit have to agree on the lock backend and on the
       # token paste, or the link fails on an unresolved 'tlsf_thread_*' symbol.
@@ -289,13 +325,13 @@ jobs:
       # link the stale object left by the C11 step above.
       - name: Compile Thread Wrapper for the C++ Link
         run: |
-          cl.exe /c /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK src\tlsf_thread.c /Fo:tlsf_thread.obj
+          cl.exe /c /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK src\tlsf_thread.c /Fo:tlsf_thread_${{ matrix.arch }}.obj
       - name: Compile C++ TLSF Test with MSVC
         run: |
-          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c++14 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\test_cpp.cpp tlsf.obj tlsf_thread.obj /Fe:test_cpp.exe
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c++14 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\test_cpp.cpp tlsf_${{ matrix.arch }}.obj tlsf_thread_${{ matrix.arch }}.obj /Fe:test_cpp_${{ matrix.arch }}.exe
       - name: Run C++ TLSF Test
         run: |
-          .\test_cpp.exe
+          .\test_cpp_${{ matrix.arch }}.exe
       # The same pair with the flag on both units, which is what the reporter
       # of issue #40 was after. MSVC ships '<threads.h>' from 17.8 on, so the
       # C++ unit finds it through __has_include and has to land on the same
@@ -309,13 +345,13 @@ jobs:
       # exercised here and is not expected to be, see the header.
       - name: Compile Thread Wrapper for the C++ C11 Link
         run: |
-          cl.exe /c /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK /DTLSF_C11_THREADS src\tlsf_thread.c /Fo:tlsf_thread_c11.obj
+          cl.exe /c /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK /DTLSF_C11_THREADS src\tlsf_thread.c /Fo:tlsf_thread_c11_${{ matrix.arch }}.obj
       - name: Compile C++ TLSF Test with MSVC (C11)
         run: |
-          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c++14 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK /DTLSF_C11_THREADS tests\test_cpp.cpp tlsf.obj tlsf_thread_c11.obj /Fe:test_cpp_c11.exe
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c++14 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK /DTLSF_C11_THREADS tests\test_cpp.cpp tlsf_${{ matrix.arch }}.obj tlsf_thread_c11_${{ matrix.arch }}.obj /Fe:test_cpp_c11_${{ matrix.arch }}.exe
       - name: Run C++ TLSF Test (C11)
         run: |
-          .\test_cpp_c11.exe
+          .\test_cpp_c11_${{ matrix.arch }}.exe
       # The stress test on the lock a Windows user now gets without asking.
       # Until the selection above changed, every MSVC build reached 'mtx_t'
       # whether or not it asked for it, so 'SRWLOCK' was unreachable and went
@@ -326,10 +362,10 @@ jobs:
       # 'tlsf_thread.obj' in the working directory as a side effect.
       - name: Compile Multi-Threaded TLSF with MSVC (native lock)
         run: |
-          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK src\tlsf_thread.c tests\test_thread.c tlsf.obj /Fe:test_thread_native.exe
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK src\tlsf_thread.c tests\test_thread.c tlsf_${{ matrix.arch }}.obj /Fe:test_thread_native_${{ matrix.arch }}.exe
       - name: Run Multi-Threaded Tests (native lock)
         run: |
-          .\test_thread_native.exe
+          .\test_thread_native_${{ matrix.arch }}.exe
       # The only place the std::pmr adapters meet MSVC, and the reason their
       # language gate reads '_MSVC_LANG': cl leaves '__cplusplus' at 199711L
       # unless '/Zc:__cplusplus' is passed, and '/std:c++17' does not imply it,
@@ -344,22 +380,28 @@ jobs:
       # /std:c++14 steps test.
       - name: Compile C++17 PMR Test with MSVC
         run: |
-          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c++17 /EHsc /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\test_pmr.cpp tlsf.obj tlsf_thread.obj /Fe:test_pmr.exe
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c++17 /EHsc /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\test_pmr.cpp tlsf_${{ matrix.arch }}.obj tlsf_thread_${{ matrix.arch }}.obj /Fe:test_pmr_${{ matrix.arch }}.exe
       - name: Run C++17 PMR Test
         run: |
-          .\test_pmr.exe
+          .\test_pmr_${{ matrix.arch }}.exe
       - name: Compile Benchmark TLSF with MSVC
         run: |
-          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\bench.c tlsf.obj /Fe:bench_tlsf.exe /link Psapi.lib
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\bench.c tlsf_${{ matrix.arch }}.obj /Fe:bench_tlsf_${{ matrix.arch }}.exe /link Psapi.lib
       - name: Run Benchmark TLSF
         run: |
-          .\bench_tlsf.exe -l 10000 -i 3 -w 1
+          .\bench_tlsf_${{ matrix.arch }}.exe -l 10000 -i 3 -w 1
+      - name: Compile Benchmark TLSF with MSVC Modern Intrinsics
+        run: |
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK /DTLSF_MSVC_MODERN_INTRINSICS tests\bench.c tlsf_mi_${{ matrix.arch }}.obj /Fe:bench_tlsf_mi_${{ matrix.arch }}.exe /link Psapi.lib
+      - name: Run Benchmark TLSF Modern Intrinsics
+        run: |
+          .\bench_tlsf_mi_${{ matrix.arch }}.exe -l 10000 -i 3 -w 1
       - name: Compile WCET TLSF with MSVC
         run: |
-          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\wcet.c tlsf.obj /Fe:wcet_tlsf.exe
+          cl.exe /Iinclude /O2 /W3 /we4146 /we4334 /std:c11 /DTLSF_ENABLE_ASSERT /DTLSF_ENABLE_CHECK tests\wcet.c tlsf_${{ matrix.arch }}.obj /Fe:wcet_tlsf_${{ matrix.arch }}.exe
       - name: Run WCET TLSF
         run: |
-          .\wcet_tlsf.exe -i 100 -w 10
+          .\wcet_tlsf_${{ matrix.arch }}.exe -i 100 -w 10
 
   wcet:
     runs-on: ${{ matrix.runner }}
