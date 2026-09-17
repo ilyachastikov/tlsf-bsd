@@ -1844,14 +1844,14 @@ void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
     if (UNLIKELY(!mem))
         return tlsf_aalloc(t, align, size);
 
+    /* Alignment validation (power of two) */
+    if (UNLIKELY(!align || (align & (align - 1)) || align > TLSF_MAX_SIZE))
+        return NULL;
+
     /* If alignment is lower than standard one,
        we can use tlsf_realloc */
     if (align <= ALIGN_SIZE)
         return tlsf_realloc(t, mem, size);
-
-    /* Alignment validation (power of two) */
-    if (UNLIKELY(!align || (align & (align - 1)) || align > TLSF_MAX_SIZE))
-        return NULL;
 
     tlsf_block_t *block = block_from_payload(mem);
     size_t avail = block_size(block);
