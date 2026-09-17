@@ -1892,7 +1892,8 @@ void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
                 return NULL;
 
             /* Copy data from the old block */
-            memcpy(dst, mem, avail);
+            size_t copy_size = (avail < size) ? avail : size;
+            memcpy(dst, mem, copy_size);
             tlsf_free(t, mem);
             return dst;
         }
