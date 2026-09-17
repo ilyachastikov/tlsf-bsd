@@ -293,6 +293,10 @@ void *tlsf_thread_arealloc(tlsf_thread_t *ts,
     size_t old_size;
     TLSF_LOCK_ACQUIRE(&ts->arenas[idx].lock);
     old_size = tlsf_usable_size(ptr);
+    if (!align || (align & (align - 1))) {
+        TLSF_LOCK_RELEASE(&ts->arenas[idx].lock);
+        return NULL;
+    }
     void *new_ptr = tlsf_arealloc(&ts->arenas[idx].pool, ptr, align, size);
     TLSF_LOCK_RELEASE(&ts->arenas[idx].lock);
 
