@@ -207,7 +207,7 @@ extern "C" {
 /* Macros for native architecture alignment alloctions */
 #define TLSF_NATIVE_AALLOC(t, size) \
     (tlsf_aalloc((t), TLSF_ARCH_ALIGNMENT, (size)))
-#define TLSF_NATIVE_ACALLOC(t, nmemb, align, size) \
+#define TLSF_NATIVE_ACALLOC(t, nmemb, size) \
     (tlsf_acalloc((t), (nmemb), TLSF_ARCH_ALIGNMENT, (size)))
 #define TLSF_NATIVE_AREALLOC(t, mem, size) \
     (tlsf_arealloc((t), (mem), TLSF_ARCH_ALIGNMENT, (size)))
