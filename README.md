@@ -114,7 +114,7 @@ tlsf_t t = TLSF_INIT;
 void *p = tlsf_malloc(&t, 256);
 void *z = tlsf_calloc(&t, 4, 64);
 void *q = tlsf_aalloc(&t, 64, 256);   /* 64-byte aligned */
-void *h = tlsf_acalloc(&t, 4, 64, 32) /* 64-byte aligned */ 
+void *h = tlsf_acalloc(&t, 4, 64, 32); /* 64-byte aligned */ 
 p = tlsf_realloc(&t, p, 512);
 q = tlsf_arealloc(&t, q, 64, 256);
 tlsf_free(&t, p);
