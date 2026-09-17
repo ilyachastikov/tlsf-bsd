@@ -923,6 +923,55 @@ static void static_pool_test(void)
     printf(".");
     fflush(stdout);
 
+    /* Test 5: Aligned reallocation within static pool */
+    {
+        static char pool[65536];
+        tlsf_t t;
+        tlsf_pool_init(&t, pool, sizeof(pool));
+
+        void *p = tlsf_aalloc(&t, 256, 256);
+        assert(p);
+        assert(((size_t) p % 256) == 0);
+        memset(p, 0xAA, 256);
+
+        void *p2 = tlsf_arealloc(&t, p, 256, 512);
+        assert(p2);
+        assert(((size_t) p2 % 256) == 0);
+        {
+            uint8_t *data = (uint8_t *) p2;
+            for (int i = 0; i < 256; i++)
+                assert(data[i] == 0xAA);
+        }
+
+        void *p3 = tlsf_arealloc(&t, p2, 256, 50);
+        assert(p3);
+
+        assert(tlsf_arealloc(&t, p3, 256, 0) == NULL);
+
+        void *p4 = tlsf_arealloc(&t, NULL, 256, 64);
+        assert(p4);
+
+        void *q = tlsf_aalloc(&t, 4096, 4096);
+        assert(q);
+        assert(((size_t) q % 4096) == 0);
+        memset(q, 0xAA, 4096);
+
+        void *q2 = tlsf_arealloc(&t, q, 4096, 8192);
+        assert(q2);
+        assert(((size_t) q2 % 4096) == 0);
+        {
+            uint8_t *data = (uint8_t *) q2;
+            for (int i = 0; i < 4096; i++)
+                assert(data[i] == 0xAA);
+        }
+
+        tlsf_free(&t, p4);
+        tlsf_free(&t, q2);
+        tlsf_check(&t);
+    }
+    printf(".");
+    fflush(stdout);
+
     /* Test 6: Pool too small */
     {
         char tiny[8];

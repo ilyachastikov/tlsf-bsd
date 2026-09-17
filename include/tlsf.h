@@ -142,6 +142,8 @@ extern "C" {
 
 #define tlsf_resize _TLSF_ABI(tlsf_resize)
 #define tlsf_aalloc _TLSF_ABI(tlsf_aalloc)
+#define tlsf_acalloc _TLSF_ABI(tlsf_acalloc)
+#define tlsf_arealloc _TLSF_ABI(tlsf_arealloc)
 #define tlsf_append_pool _TLSF_ABI(tlsf_append_pool)
 #define tlsf_pool_init _TLSF_ABI(tlsf_pool_init)
 #define tlsf_pool_reset _TLSF_ABI(tlsf_pool_reset)
@@ -188,6 +190,27 @@ extern "C" {
 #else
 #define TLSF_INIT_STATIC TLSF_INIT
 #endif
+
+/* Native alignment for target paltform architecture */
+#if defined(__AVX512F__)
+#define TLSF_ARCH_ALIGNMENT 64
+#elif defined(__AVX2__) || defined(__AVX__)
+#define TLSF_ARCH_ALIGNMENT 32
+#elif defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(_M_ARM) || \
+    defined(_M_ARM64) || defined(__SSE__) || defined(__SSE2__) ||        \
+    defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#define TLSF_ARCH_ALIGNMENT 16
+#else
+#define TLSF_ARCH_ALIGNMENT sizeof(void *)
+#endif
+
+/* Macros for native architecture alignment alloctions */
+#define TLSF_NATIVE_AALLOC(t, size) \
+    (tlsf_aalloc((t), TLSF_ARCH_ALIGNMENT, (size)))
+#define TLSF_NATIVE_ACALLOC(t, nmemb, align, size) \
+    (tlsf_acalloc((t), (nmemb), TLSF_ARCH_ALIGNMENT, (size)))
+#define TLSF_NATIVE_AREALLOC(t, mem, size) \
+    (tlsf_arealloc((t), (mem), TLSF_ARCH_ALIGNMENT, (size)))
 
 #ifndef TLSF_STATIC_ASSERT
 #if defined(__cplusplus) && (__cplusplus >= 201103L)
@@ -310,6 +333,60 @@ void *tlsf_resize(tlsf_t *t, size_t size);
   ensures \result == \null || \valid(((char *)\result) + (0 .. size - 1));
  */
 void *tlsf_aalloc(tlsf_t *t, size_t align, size_t size);
+
+/**
+ * Allocate zero-initialized memory for an array with a specified
+ * alignment.
+ *
+ * @t : The TLSF allocator instance
+ * @nmemb : Number of array elements
+ * @align : Alignment in bytes; must be a non-zero power of two
+ * @size : Size of each element
+ *
+ * Return Pointer to at least @nmemb * @size zeroed bytes aligned to @align,
+ * or NULL if the multiplication overflows or allocation fails. A zero total
+ * size returns a unique minimum-sized allocation, consistent with
+ * tlsf_malloc().
+ */
+/*@
+  requires \valid(t);
+  ensures (align == 0 || (align & (align - 1)) != 0) ==> \result == \null;
+  ensures nmemb != 0 && size > SIZE_MAX / nmemb ==> \result == \null;
+  ensures \result == \null ||
+    \valid(((char *)\result) + (0 .. nmemb * size - 1));
+ */
+void *tlsf_acalloc(tlsf_t *t, size_t nmemb, size_t align, size_t size);
+
+/**
+ * Resize an existing allocation with specified alignment,
+ * preserving its contents upto the smaller of the old and new sizes.
+ * It can preserve previous alignment (if specified the same one) or allocate
+ * memory with new alignment.
+ *
+ * Two calls are aliases for other entry points: a NULL @mem allocates, and a
+ * zero @size frees @mem and returns NULL. Note the latter differs from C's
+ * realloc, where the same call is implementation-defined (C17) or undefined
+ * (C23).
+ *
+ * The block may be grown in place or relocated, so the returned pointer need
+ * not equal @mem. On failure NULL is returned and @mem is left allocated and
+ * intact.
+ *
+ * @t : The TLSF allocator instance
+ * @mem : Pointer from tlsf_malloc/aalloc/realloc, or NULL
+ * @align : Alignment in bytes; must be a non-zero power of two
+ * @size : Requested new size in bytes
+ *
+ * Return Pointer to the resized allocation aligned to @align, or NULL on
+ * failure or zero @size
+ */
+/*@
+  requires \valid(t);
+  requires mem != \null ==> tlsf_payload_header(mem);
+  ensures (align == 0 || (align & (align - 1)) != 0) ==> \result == \null;
+  ensures \result == \null || \valid(((char *)\result) + (0 .. size - 1));
+ */
+void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size);
 
 /**
  * Extend an existing pool with more memory, coalescing with the pool's last
