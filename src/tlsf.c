@@ -1885,10 +1885,6 @@ void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
             block_merge_next(t, block);
             ASAN_UNPOISON(block_payload(block), block_size(block));
             block_set_prev_free(block_next(block), false);
-
-            /* Now `avail` is increased to the new size
-               of the combined block */
-            avail = block_size(block);
         } else {
             /* Relocation with specified alignment */
             void *dst = tlsf_aalloc(t, align, size);
