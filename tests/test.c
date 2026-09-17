@@ -1179,6 +1179,66 @@ static void calloc_test(void)
     printf("done\n");
 }
 
+static void acalloc_test(void)
+{
+    printf("Acalloc test: ");
+    fflush(stdout);
+
+    static unsigned char pool[4096];
+    memset(pool, 0xA5, sizeof(pool));
+
+    tlsf_t t;
+    assert(tlsf_pool_init(&t, pool, sizeof(pool)) > 0);
+
+    tlsf_stats_t before, after;
+    assert(tlsf_get_stats(&t, &before) == 0);
+
+    /* Two wrap targets, each in both operand orders. The 'half' pairs wrap the
+     * product to zero, which tlsf_malloc honors as a minimum-sized request; the
+     * 'wrap' pairs wrap it to 4, which tlsf_malloc would satisfy outright. A
+     * guard that merely rejects a zero product passes the first pair, so the
+     * second pair is what pins the check to the operands rather than the
+     * product.
+     */
+    size_t half = SIZE_MAX / 2 + 1;
+    assert(tlsf_acalloc(&t, half, 64, 2) == NULL);
+    assert(tlsf_acalloc(&t, 2, 64, half) == NULL);
+
+    size_t wrap = SIZE_MAX / 4 + 2;
+    assert(tlsf_acalloc(&t, wrap, 64, 4) == NULL);
+    assert(tlsf_acalloc(&t, 4, 64, wrap) == NULL);
+
+    assert(tlsf_get_stats(&t, &after) == 0);
+    assert(after.total_free == before.total_free);
+    assert(after.largest_free == before.largest_free);
+    assert(after.total_used == before.total_used);
+    assert(after.block_count == before.block_count);
+    assert(after.free_count == before.free_count);
+    assert(after.overhead == before.overhead);
+
+    unsigned char *p = (unsigned char *) tlsf_acalloc(&t, 17, 64, 3);
+    assert(p);
+    for (size_t i = 0; i < 51; i++)
+        assert(p[i] == 0);
+
+    /* Drive the inner tlsf_malloc() to failure. The product is representable,
+     * so the overflow guard hands it through, and a fixed pool this size cannot
+     * satisfy it. Nothing else in the suite reaches that arm, which must return
+     * NULL rather than zeroing through a null pointer.
+     */
+    assert(tlsf_acalloc(&t, 1, 64, sizeof(pool) * 16) == NULL);
+
+    void *zero_a = tlsf_acalloc(&t, 0, 64, SIZE_MAX);
+    void *zero_b = tlsf_acalloc(&t, SIZE_MAX, 64, 0);
+    assert(zero_a && zero_b && zero_a != zero_b);
+
+    tlsf_free(&t, zero_b);
+    tlsf_free(&t, zero_a);
+    tlsf_free(&t, p);
+    tlsf_check(&t);
+    printf("done\n");
+}
+
 /* Test zero-size and alignment edge cases. Validates consistent behavior
  * between tlsf_malloc and tlsf_aalloc.
  */
@@ -1945,6 +2005,9 @@ int main(void)
 
     /* Run zero-initialized allocation test */
     calloc_test();
+
+    /* Run zero-initialized aligned allocation test */
+    acalloc_test();
 
     /* Run pool reset test */
     pool_reset_test();
