@@ -1218,6 +1218,7 @@ static void acalloc_test(void)
 
     unsigned char *p = (unsigned char *) tlsf_acalloc(&t, 17, 64, 3);
     assert(p);
+    assert(((size_t) p % 64) == 0);
     for (size_t i = 0; i < 51; i++)
         assert(p[i] == 0);
 
