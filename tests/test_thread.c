@@ -254,7 +254,10 @@ static TLSF_THREAD_CONVENTION aligned_thread_func(void *arg)
             memset(p, id & 0xFF, sz);
             size_t new_sz = (size_t) (TLSF_RAND(&seed) % 512) + 1;
             void *q = tlsf_thread_arealloc(&ts, p, align, new_sz);
-            tlsf_thread_free(&ts, q);
+            if (q)
+                tlsf_thread_free(&ts, q);
+            else
+                tlsf_thread_free(&ts, p);
         }
     }
     return TLSF_THREAD_RETURN;
