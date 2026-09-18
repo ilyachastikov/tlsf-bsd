@@ -1866,14 +1866,14 @@ void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
         void *dst = tlsf_aalloc(t, align, size);
         if (!dst)
             return NULL;
-        memcpy(dst, mem, avail);
+        memcpy(dst, mem, (avail < size) ? avail : size);
         tlsf_free(t, mem);
         return dst;
     }
 
     ASSERT(!block_is_free(block), "block already marked as free");
 
-    /* Is it's need to grow block */
+    /* Is it need to grow the block */
     if (adjust > avail) {
         const tlsf_block_t *next = block_next(block);
 
@@ -1892,8 +1892,7 @@ void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
                 return NULL;
 
             /* Copy data from the old block */
-            size_t copy_size = (avail < size) ? avail : size;
-            memcpy(dst, mem, copy_size);
+            memcpy(dst, mem, (avail < size) ? avail : size);
             tlsf_free(t, mem);
             return dst;
         }
