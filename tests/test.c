@@ -1985,6 +1985,23 @@ static void arealloc_test(void)
     tlsf_t t;
     assert(tlsf_pool_init(&t, pool, sizeof(pool)) > 0);
 
+    uint8_t *p_align = (uint8_t *) tlsf_aalloc(&t, 16, 32);
+
+    /* arealloc with 64 or 128 align
+     * with probability 75 % (or 87.5 %) address p_align
+     * will not be a multiple of 64 or 128
+     */
+    uintptr_t addr = (uintptr_t) p_align;
+    size_t target_align = 64;
+    if ((addr % target_align) == 0) {
+        target_align = 128;
+    }
+
+    void *p_new = tlsf_arealloc(&t, p_align, target_align, 64);
+    assert(p_new != NULL);
+    tlsf_free(&t, p_new);
+
+
     /* Non - valid alignment checking */
     void *p_err1 = tlsf_arealloc(&t, NULL, 7, 32); /* 7 is non power of two */
     assert(p_err1 == NULL);
@@ -1997,6 +2014,18 @@ static void arealloc_test(void)
     void *p_err3 = tlsf_arealloc(&t, p_valid, 16, (size_t) -1);
     assert(p_err3 == NULL);
     tlsf_free(&t, p_valid);
+
+    /* Out of memory test */
+    void *p_oom = tlsf_aalloc(&t, 16, 32);
+    void *p_filler = tlsf_malloc(&t, 4096 - 2048);
+    /* Try do arealloc for p_oom to larger value,
+     * there is no space available thus tlsf_aalloc will return NULL */
+    void *p_fail = tlsf_arealloc(&t, p_oom, 16, 2048);
+    assert(p_fail == NULL);
+    assert(p_oom != NULL);
+    if (p_filler)
+        tlsf_free(&t, p_filler);
+    tlsf_free(&t, p_oom);
 
     printf(". done\n");
 }
