@@ -1974,6 +1974,33 @@ static void pool_reset_test(void)
     printf(". done\n");
 }
 
+/* Test acalloc */
+static void arealloc_test(void)
+{
+    printf("Arealloc test: ");
+    fflush(stdout);
+
+    static unsigned char pool[4096];
+
+    tlsf_t t;
+    assert(tlsf_pool_init(&t, pool, sizeof(pool)) > 0);
+
+    /* Non - valid alignment checking */
+    void *p_err1 = tlsf_arealloc(&t, NULL, 7, 32); /* 7 is non power of two */
+    assert(p_err1 == NULL);
+
+    void *p_err2 = tlsf_arealloc(&t, NULL, 0, 32); /* 0 is not valid */
+    assert(p_err2 == NULL);
+
+    /* Check too large size */
+    void *p_valid = tlsf_aalloc(&t, 16, 32);
+    void *p_err3 = tlsf_arealloc(&t, p_valid, 16, (size_t) -1);
+    assert(p_err3 == NULL);
+    tlsf_free(&t, p_valid);
+
+    printf(". done\n");
+}
+
 int main(void)
 {
     tlsf_t t = TLSF_INIT;
@@ -2031,6 +2058,9 @@ int main(void)
 
     /* Run argument contract test */
     argument_contract_test();
+
+    /* Run arealloc test */
+    arealloc_test();
 
     puts("OK!");
     return 0;
