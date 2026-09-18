@@ -339,8 +339,8 @@ void *tlsf_aalloc(tlsf_t *t, size_t align, size_t size);
  * alignment.
  *
  * @t : The TLSF allocator instance
- * @nmemb : Number of array elements
  * @align : Alignment in bytes; must be a non-zero power of two
+ * @nmemb : Number of array elements
  * @size : Size of each element
  *
  * Return Pointer to at least @nmemb * @size zeroed bytes aligned to @align,
@@ -355,7 +355,7 @@ void *tlsf_aalloc(tlsf_t *t, size_t align, size_t size);
   ensures \result == \null ||
     \valid(((char *)\result) + (0 .. nmemb * size - 1));
  */
-void *tlsf_acalloc(tlsf_t *t, size_t nmemb, size_t align, size_t size);
+void *tlsf_acalloc(tlsf_t *t, size_t align, size_t nmemb, size_t size);
 
 /**
  * Resize an existing allocation with specified alignment,

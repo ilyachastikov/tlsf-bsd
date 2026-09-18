@@ -114,7 +114,7 @@ tlsf_t t = TLSF_INIT;
 void *p = tlsf_malloc(&t, 256);
 void *z = tlsf_calloc(&t, 4, 64);
 void *q = tlsf_aalloc(&t, 64, 256);   /* 64-byte aligned */
-void *h = tlsf_acalloc(&t, 4, 64, 32); /* 64-byte aligned */ 
+void *h = tlsf_acalloc(&t, 64, 4, 32); /* 64-byte aligned */ 
 p = tlsf_realloc(&t, p, 512);
 q = tlsf_arealloc(&t, q, 64, 256);
 tlsf_free(&t, p);
@@ -139,7 +139,7 @@ tlsf_free(&s, r);
 | `tlsf_free(t, ptr)` | Free a previously allocated block. NULL is a no-op. |
 | `tlsf_realloc(t, ptr, size)` | Resize allocation. Tries in-place expansion before relocating. |
 | `tlsf_aalloc(t, align, size)` | Allocate with alignment. `align` must be a power of two. |
-| `tlsf_acalloc(t, nmemb, align, size)` | Allocate an aligned array and zero its requested bytes. Multiplication overflow returns NULL. |
+| `tlsf_acalloc(t, align, nmemb, size)` | Allocate an aligned array and zero its requested bytes. Multiplication overflow returns NULL. |
 | `tlsf_arealloc(t, ptr, align, size)` | Resize aligned allocation. Tries in-place expansion before relocating. |
 | `tlsf_pool_init(t, mem, bytes)` | Initialize a fixed-size pool. Returns usable bytes, 0 on failure. |
 | `tlsf_append_pool(t, mem, size)` | Extend pool with adjacent memory. Returns bytes used, 0 on failure. |

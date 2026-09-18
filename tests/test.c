@@ -1201,12 +1201,12 @@ static void acalloc_test(void)
      * product.
      */
     size_t half = SIZE_MAX / 2 + 1;
-    assert(tlsf_acalloc(&t, half, 64, 2) == NULL);
-    assert(tlsf_acalloc(&t, 2, 64, half) == NULL);
+    assert(tlsf_acalloc(&t, 64, half, 2) == NULL);
+    assert(tlsf_acalloc(&t, 64, 2, half) == NULL);
 
     size_t wrap = SIZE_MAX / 4 + 2;
-    assert(tlsf_acalloc(&t, wrap, 64, 4) == NULL);
-    assert(tlsf_acalloc(&t, 4, 64, wrap) == NULL);
+    assert(tlsf_acalloc(&t, 64, wrap, 4) == NULL);
+    assert(tlsf_acalloc(&t, 64, 4, wrap) == NULL);
 
     assert(tlsf_get_stats(&t, &after) == 0);
     assert(after.total_free == before.total_free);
@@ -1216,7 +1216,7 @@ static void acalloc_test(void)
     assert(after.free_count == before.free_count);
     assert(after.overhead == before.overhead);
 
-    unsigned char *p = (unsigned char *) tlsf_acalloc(&t, 17, 64, 3);
+    unsigned char *p = (unsigned char *) tlsf_acalloc(&t, 64, 17, 3);
     assert(p);
     assert(((size_t) p % 64) == 0);
     for (size_t i = 0; i < 51; i++)
@@ -1227,10 +1227,10 @@ static void acalloc_test(void)
      * satisfy it. Nothing else in the suite reaches that arm, which must return
      * NULL rather than zeroing through a null pointer.
      */
-    assert(tlsf_acalloc(&t, 1, 64, sizeof(pool) * 16) == NULL);
+    assert(tlsf_acalloc(&t, 64, 1, sizeof(pool) * 16) == NULL);
 
-    void *zero_a = tlsf_acalloc(&t, 0, 64, SIZE_MAX);
-    void *zero_b = tlsf_acalloc(&t, SIZE_MAX, 64, 0);
+    void *zero_a = tlsf_acalloc(&t, 64, 0, SIZE_MAX);
+    void *zero_b = tlsf_acalloc(&t, 64, SIZE_MAX, 0);
     assert(zero_a && zero_b && zero_a != zero_b);
 
     tlsf_free(&t, zero_b);

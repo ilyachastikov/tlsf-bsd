@@ -1730,7 +1730,7 @@ void *tlsf_aalloc(tlsf_t *t, size_t align, size_t size)
     return block_use(t, block, adjust);
 }
 
-void *tlsf_acalloc(tlsf_t *t, size_t nmemb, size_t align, size_t size)
+void *tlsf_acalloc(tlsf_t *t, size_t align, size_t nmemb, size_t size)
 {
     if (UNLIKELY(nmemb && size > SIZE_MAX / nmemb))
         return NULL;
