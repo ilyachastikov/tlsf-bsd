@@ -1854,6 +1854,7 @@ void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
         return tlsf_realloc(t, mem, size);
 
     tlsf_block_t *block = block_from_payload(mem);
+    ASSERT(!block_is_free(block), "block already marked as free");
     size_t avail = block_size(block);
     size_t adjust = adjust_size(size, ALIGN_SIZE);
 
@@ -1870,8 +1871,6 @@ void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
         tlsf_free(t, mem);
         return dst;
     }
-
-    ASSERT(!block_is_free(block), "block already marked as free");
 
     /* Is it need to grow the block */
     if (adjust > avail) {
