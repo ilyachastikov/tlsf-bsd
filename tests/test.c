@@ -1986,33 +1986,34 @@ static void arealloc_test(void)
     assert(tlsf_pool_init(&t, pool, sizeof(pool)) > 0);
 
     size_t initial_size = 32;
+    size_t target_align = 64;
     uint8_t *p_align = (uint8_t *) tlsf_aalloc(&t, 16, initial_size);
     assert(p_align != NULL);
     memset(p_align, 0xDE, initial_size);
+    void *barrier = tlsf_aalloc(&t, target_align, 64);
+    assert(barrier != NULL);
 
     /* arealloc with 64 or 128 align
      * with probability 75 % (or 87.5 %) address p_align
      * will not be a multiple of 64 or 128
      */
     uintptr_t addr = (uintptr_t) p_align;
-    size_t target_align = 64;
     if ((addr % target_align) == 0) {
         target_align = 128;
     }
 
-    size_t new_size = 64;
+    size_t new_size = 128;
     void *p_new = tlsf_arealloc(&t, p_align, target_align, new_size);
     assert(p_new != NULL);
     assert(((uintptr_t) p_new % target_align) == 0 &&
-           "tlsf_arealloc failed to align the relocated block");
-    assert(p_new != p_align &&
-           "tlsf_arealloc wrongly reused a misaligned block in-place");
+           "tlsf_arealloc lost alignment");
+    assert(p_new != p_align && "tlsf_arealloc didn't relocate the block");
     uint8_t *p_new_bytes = (uint8_t *) p_new;
     for (size_t i = 0; i < initial_size; i++) {
-        assert(p_new_bytes[i] == 0xDE &&
-               "Data corruption detected during tlsf_arealloc relocation path");
+        assert(p_new_bytes[i] == 0xDE && "Data corruption during relocation");
     }
     tlsf_free(&t, p_new);
+    tlsf_free(&t, barrier);
 
     /* Non - valid alignment checking */
     void *p_err1 = tlsf_arealloc(&t, NULL, 7, 32); /* 7 is non power of two */
