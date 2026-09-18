@@ -192,6 +192,7 @@ extern "C" {
 #endif
 
 /* Native alignment for target paltform architecture */
+#ifndef TLSF_ARCH_ALIGNMENT
 #if defined(__AVX512F__)
 #define TLSF_ARCH_ALIGNMENT 64
 #elif defined(__AVX2__) || defined(__AVX__)
@@ -201,16 +202,28 @@ extern "C" {
     defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
 #define TLSF_ARCH_ALIGNMENT 16
 #else
-#define TLSF_ARCH_ALIGNMENT sizeof(void *)
+#if defined(__x86_64__) || defined(_M_X64) || defined(__aarch64__) || \
+    defined(_M_ARM64)
+#define TLSF_ARCH_ALIGNMENT 16
+#else
+#define TLSF_ARCH_ALIGNMENT 8
+#endif
+#endif
 #endif
 
 /* Macros for native architecture alignment alloctions */
+#ifndef TLSF_NATIVE_AALLOC
 #define TLSF_NATIVE_AALLOC(t, size) \
     (tlsf_aalloc((t), TLSF_ARCH_ALIGNMENT, (size)))
+#endif
+#ifndef TLSF_NATIVE_ACALLOC
 #define TLSF_NATIVE_ACALLOC(t, nmemb, size) \
     (tlsf_acalloc((t), TLSF_ARCH_ALIGNMENT, (nmemb), (size)))
+#endif
+#ifndef TLSF_NATIVE_AREALLOC
 #define TLSF_NATIVE_AREALLOC(t, mem, size) \
     (tlsf_arealloc((t), (mem), TLSF_ARCH_ALIGNMENT, (size)))
+#endif
 
 #ifndef TLSF_STATIC_ASSERT
 #if defined(__cplusplus) && (__cplusplus >= 201103L)
