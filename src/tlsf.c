@@ -1868,7 +1868,7 @@ void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
         if (!dst)
             return NULL;
 
-        tlsf_block_t *new_block = block_from_payload(dst);
+        const tlsf_block_t *new_block = block_from_payload(dst);
         size_t new_avail = block_size(new_block);
         size_t copy_size = avail;
         if (size < copy_size)
@@ -1899,7 +1899,7 @@ void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
             if (!dst)
                 return NULL;
 
-            tlsf_block_t *new_block = block_from_payload(dst);
+            const tlsf_block_t *new_block = block_from_payload(dst);
             size_t new_avail = block_size(new_block);
             size_t copy_size = avail;
             if (size < copy_size)
