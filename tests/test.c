@@ -2064,6 +2064,51 @@ static void arealloc_test(void)
     printf(". done\n");
 }
 
+void arealloc_shrink_with_alignment_change_test(void)
+{
+    printf("Arealloc shrink with alignment change test: ");
+    fflush(stdout);
+
+    TLSF_MSVC_ALIGN(128)
+    TLSF_C11C23_ALIGN(128)
+    static unsigned char raw_pool[8192] TLSF_GCC_ALIGN(128);
+
+    unsigned char *pool = raw_pool + 64;
+
+    tlsf_t t;
+    assert(tlsf_pool_init(&t, pool, 8192 - 64) > 0);
+
+    size_t initial_size = 4096;
+    uint8_t *p_old = (uint8_t *) tlsf_aalloc(&t, 16, initial_size);
+    assert(p_old != NULL);
+
+    memset(p_old, 0xAA, initial_size);
+
+    assert(((uintptr_t) p_old % 128) != 0 &&
+           "Test setup error: p_old is accidentally aligned to 128");
+
+    size_t target_align = 128;
+    size_t new_size = 32;
+    uint8_t *p_new =
+        (uint8_t *) tlsf_arealloc(&t, p_old, target_align, new_size);
+
+    assert(p_new != NULL);
+    assert(((uintptr_t) p_new % target_align) == 0 &&
+           "tlsf_arealloc lost alignment");
+
+    for (size_t i = 0; i < new_size; i++) {
+        assert(p_new[i] == 0xAA &&
+               "Data corrupted inside the new block bounds");
+    }
+
+    void *canary_block = tlsf_aalloc(&t, 16, 256);
+    assert(canary_block != NULL &&
+           "Heap metadata was destroyed by out-of-bounds write!");
+
+    tlsf_check(&t);
+    printf(". done\n");
+}
+
 int main(void)
 {
     tlsf_t t = TLSF_INIT;
@@ -2124,6 +2169,9 @@ int main(void)
 
     /* Run arealloc test */
     arealloc_test();
+
+    /* Run arealloc shrink with alignment change test */
+    arealloc_shrink_with_alignment_change_test();
 
     puts("OK!");
     return 0;

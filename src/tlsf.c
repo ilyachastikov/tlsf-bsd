@@ -1867,7 +1867,16 @@ void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
         void *dst = tlsf_aalloc(t, align, size);
         if (!dst)
             return NULL;
-        memcpy(dst, mem, (avail < size) ? avail : size);
+
+        tlsf_block_t *new_block = block_from_payload(dst);
+        size_t new_avail = block_size(new_block);
+        size_t copy_size = avail;
+        if (size < copy_size)
+            copy_size = size;
+        if (new_avail < copy_size)
+            copy_size = new_avail;
+
+        memcpy(dst, mem, copy_size);
         tlsf_free(t, mem);
         return dst;
     }
@@ -1890,8 +1899,16 @@ void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
             if (!dst)
                 return NULL;
 
+            tlsf_block_t *new_block = block_from_payload(dst);
+            size_t new_avail = block_size(new_block);
+            size_t copy_size = avail;
+            if (size < copy_size)
+                copy_size = size;
+            if (new_avail < copy_size)
+                copy_size = new_avail;
+
             /* Copy data from the old block */
-            memcpy(dst, mem, (avail < size) ? avail : size);
+            memcpy(dst, mem, copy_size);
             tlsf_free(t, mem);
             return dst;
         }
