@@ -32,6 +32,30 @@
 
 #include "pool_limits.h"
 
+#if defined(_MSC_VER)
+#define TLSF_MSVC_ALIGN(x) __declspec(align(x))
+#define TLSF_GCC_ALIGN(x)
+#define TLSF_C11C23_ALIGN(x)
+#elif defined(__GNUC__) || defined(__clang__)
+#define TLSF_MSVC_ALIGN(x)
+#define TLSF_GCC_ALIGN(x) __attribute__((aligned(x)))
+#define TLSF_C11C23_ALIGN(x)
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L && \
+    !defined(__cplusplus)
+#define TLSF_MSVC_ALIGN(x)
+#define TLSF_GCC_ALIGN(x)
+#define TLSF_C11C23_ALIGN(x) alignas(x)
+#elif (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L) && \
+    !defined(__cplusplus)
+#define TLSF_MSVC_ALIGN(x)
+#define TLSF_GCC_ALIGN(x)
+#define TLSF_C11C23_ALIGN(x) _Alignas(x)
+#else
+#define TLSF_MSVC_ALIGN(x)
+#define TLSF_GCC_ALIGN(x)
+#define TLSF_C11C23_ALIGN(x)
+#endif
+
 static size_t PAGE;
 static size_t MAX_PAGES;
 static size_t curr_pages = 0;
@@ -1980,27 +2004,22 @@ static void arealloc_test(void)
     printf("Arealloc test: ");
     fflush(stdout);
 
-    static unsigned char pool[4096];
+    TLSF_MSVC_ALIGN(128)
+    static unsigned char raw_pool[4096 + 64] TLSF_GCC_ALIGN(128);
 
     tlsf_t t;
-    assert(tlsf_pool_init(&t, pool, sizeof(pool)) > 0);
+    unsigned char *pool = raw_pool + 64;
+    assert(tlsf_pool_init(&t, pool, 4096) > 0);
 
     size_t initial_size = 32;
-    size_t target_align = 64;
+    size_t target_align = 128;
     uint8_t *p_align = (uint8_t *) tlsf_aalloc(&t, 16, initial_size);
+    assert(((uintptr_t) p_align % target_align) != 0 &&
+           "Test setup error: p_align is accidentally aligned");
     assert(p_align != NULL);
     memset(p_align, 0xDE, initial_size);
     void *barrier = tlsf_aalloc(&t, target_align, 64);
     assert(barrier != NULL);
-
-    /* arealloc with 64 or 128 align
-     * with probability 75 % (or 87.5 %) address p_align
-     * will not be a multiple of 64 or 128
-     */
-    uintptr_t addr = (uintptr_t) p_align;
-    if ((addr % target_align) == 0) {
-        target_align = 128;
-    }
 
     size_t new_size = 128;
     void *p_new = tlsf_arealloc(&t, p_align, target_align, new_size);
