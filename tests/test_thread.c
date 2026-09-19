@@ -255,18 +255,19 @@ static TLSF_THREAD_CONVENTION aligned_thread_func(void *arg)
             size_t new_sz = (size_t) (TLSF_RAND(&seed) % 512) + 1;
             void *q = tlsf_thread_arealloc(&ts, p, align, new_sz);
             if (q) {
-                assert(((uintptr_t)q % align) == 0 && "tlsf_thread_arealloc lost alignment");
+                assert(((uintptr_t) q % align) == 0 &&
+                       "tlsf_thread_arealloc lost alignment");
                 size_t check_sz = (sz < new_sz) ? sz : new_sz;
-                unsigned char* data = (unsigned char*)q;
-                unsigned char expected_byte = (unsigned char)(id & 0xFF);
+                unsigned char *data = (unsigned char *) q;
+                unsigned char expected_byte = (unsigned char) (id & 0xFF);
                 for (size_t i = 0; i < check_sz; i++) {
-                    assert(data[i] == expected_byte && "tlsf_thread_arealloc corrupted payload");
+                    assert(data[i] == expected_byte &&
+                           "tlsf_thread_arealloc corrupted payload");
                 }
                 tlsf_thread_free(&ts, q);
-            }                
-            else {
+            } else {
                 tlsf_thread_free(&ts, p);
-            }                
+            }
         }
     }
     return TLSF_THREAD_RETURN;
