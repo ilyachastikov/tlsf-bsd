@@ -344,10 +344,14 @@ TLSF_STATIC_ASSERT((TLSF_CACHELINE_SIZE & (TLSF_CACHELINE_SIZE - 1)) == 0,
 #endif
 
 /* Macros for native architecture alignment alloctions */
+#ifndef TLSF_NATIVE_THREAD_AALLOC
 #define TLSF_NATIVE_THREAD_AALLOC(t, size) \
     (tlsf_thread_aalloc((t), TLSF_ARCH_ALIGNMENT, (size)))
+#endif
+#ifndef TLSF_NATIVE_THREAD_AREALLOC
 #define TLSF_NATIVE_THREAD_AREALLOC(t, mem, size) \
     (tlsf_thread_arealloc((t), (mem), TLSF_ARCH_ALIGNMENT, (size)))
+#endif
 
 /* Everything above is includes, macros and static assertions, none of which
  * needs C linkage, and one of the includes is '<threads.h>' or '<windows.h>'.

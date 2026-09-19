@@ -202,12 +202,7 @@ extern "C" {
     defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
 #define TLSF_ARCH_ALIGNMENT 16
 #else
-#if defined(__x86_64__) || defined(_M_X64) || defined(__aarch64__) || \
-    defined(_M_ARM64)
-#define TLSF_ARCH_ALIGNMENT 16
-#else
-#define TLSF_ARCH_ALIGNMENT 8
-#endif
+#define TLSF_ARCH_ALIGNMENT (_TLSF_SIZE_WIDTH >> 2)
 #endif
 #endif
 
