@@ -2005,7 +2005,8 @@ static void arealloc_test(void)
     fflush(stdout);
 
     TLSF_MSVC_ALIGN(128)
-    static unsigned char raw_pool[4096 + 64] TLSF_GCC_ALIGN(128);
+    TLSF_C11C23_ALIGN(
+        128) static unsigned char raw_pool[4096 + 64] TLSF_GCC_ALIGN(128);
 
     tlsf_t t;
     unsigned char *pool = raw_pool + 64;
@@ -2035,10 +2036,11 @@ static void arealloc_test(void)
     tlsf_free(&t, barrier);
 
     /* Non - valid alignment checking */
-    void *p_err1 = tlsf_arealloc(&t, NULL, 7, 32); /* 7 is non power of two */
+    void *p_err1 =
+        tlsf_arealloc(&t, p_align, 7, 32); /* 7 is non power of two */
     assert(p_err1 == NULL);
 
-    void *p_err2 = tlsf_arealloc(&t, NULL, 0, 32); /* 0 is not valid */
+    void *p_err2 = tlsf_arealloc(&t, p_align, 0, 32); /* 0 is not valid */
     assert(p_err2 == NULL);
 
     /* Check too large size */
