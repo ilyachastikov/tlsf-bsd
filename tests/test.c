@@ -2015,9 +2015,9 @@ static void arealloc_test(void)
     size_t initial_size = 32;
     size_t target_align = 128;
     uint8_t *p_align = (uint8_t *) tlsf_aalloc(&t, 16, initial_size);
+    assert(p_align != NULL && "Allocation failed");
     assert(((uintptr_t) p_align % target_align) != 0 &&
            "Test setup error: p_align is accidentally aligned");
-    assert(p_align != NULL);
     memset(p_align, 0xDE, initial_size);
     void *barrier = tlsf_aalloc(&t, target_align, 64);
     assert(barrier != NULL);
@@ -2036,12 +2036,14 @@ static void arealloc_test(void)
     tlsf_free(&t, barrier);
 
     /* Non - valid alignment checking */
+    void *p_err_ptr = tlsf_aalloc(&t, 16, 32);
     void *p_err1 =
-        tlsf_arealloc(&t, p_align, 7, 32); /* 7 is non power of two */
+        tlsf_arealloc(&t, p_err_ptr, 7, 32); /* 7 is non power of two */
     assert(p_err1 == NULL);
 
-    void *p_err2 = tlsf_arealloc(&t, p_align, 0, 32); /* 0 is not valid */
+    void *p_err2 = tlsf_arealloc(&t, p_err_ptr, 0, 32); /* 0 is not valid */
     assert(p_err2 == NULL);
+    tlsf_free(&t, p_err_ptr);
 
     /* Check too large size */
     void *p_valid = tlsf_aalloc(&t, 16, 32);
@@ -2104,6 +2106,9 @@ void arealloc_shrink_with_alignment_change_test(void)
     void *canary_block = tlsf_aalloc(&t, 16, 256);
     assert(canary_block != NULL &&
            "Heap metadata was destroyed by out-of-bounds write!");
+
+    tlsf_free(&t, p_new);
+    tlsf_free(&t, canary_block);
 
     tlsf_check(&t);
     printf(". done\n");
