@@ -274,6 +274,9 @@ void *tlsf_thread_arealloc(tlsf_thread_t *ts,
     if (!ts)
         return NULL;
 
+    if (!align || (align & (align - 1)))
+        return NULL;
+
     if (!ptr)
         return tlsf_thread_aalloc(ts, align, size);
 
