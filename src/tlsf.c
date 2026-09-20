@@ -1833,6 +1833,24 @@ void *tlsf_realloc(tlsf_t *t, void *mem, size_t size)
     return mem;
 }
 
+static void *tlsf_arealloc_relocate(tlsf_t *t,
+                                    void *mem,
+                                    size_t align,
+                                    size_t size,
+                                    size_t avail)
+{
+    void *dst = tlsf_aalloc(t, align, size);
+    if (!dst)
+        return NULL;
+
+    size_t copy_size = (size < avail) ? size : avail;
+
+    /* Copy data from the old block */
+    memcpy(dst, mem, copy_size);
+    tlsf_free(t, mem);
+    return dst;
+}
+
 void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
 {
     /* Alignment validation (power of two) */
@@ -1864,21 +1882,7 @@ void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
     /* If current pointer is not aligned for new alignment,
        we can't use this block in-place. Cause using new allocation */
     if (((uintptr_t) mem % align) != 0) {
-        void *dst = tlsf_aalloc(t, align, size);
-        if (!dst)
-            return NULL;
-
-        const tlsf_block_t *new_block = block_from_payload(dst);
-        size_t new_avail = block_size(new_block);
-        size_t copy_size = avail;
-        if (size < copy_size)
-            copy_size = size;
-        if (new_avail < copy_size)
-            copy_size = new_avail;
-
-        memcpy(dst, mem, copy_size);
-        tlsf_free(t, mem);
-        return dst;
+        return tlsf_arealloc_relocate(t, mem, align, size, avail);
     }
 
     /* Is it need to grow the block */
@@ -1895,22 +1899,7 @@ void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
             block_set_prev_free(block_next(block), false);
         } else {
             /* Relocation with specified alignment */
-            void *dst = tlsf_aalloc(t, align, size);
-            if (!dst)
-                return NULL;
-
-            const tlsf_block_t *new_block = block_from_payload(dst);
-            size_t new_avail = block_size(new_block);
-            size_t copy_size = avail;
-            if (size < copy_size)
-                copy_size = size;
-            if (new_avail < copy_size)
-                copy_size = new_avail;
-
-            /* Copy data from the old block */
-            memcpy(dst, mem, copy_size);
-            tlsf_free(t, mem);
-            return dst;
+            return tlsf_arealloc_relocate(t, mem, align, size, avail);
         }
     }
 
