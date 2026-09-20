@@ -2063,6 +2063,34 @@ static void arealloc_test(void)
         tlsf_free(&t, p_filler);
     tlsf_free(&t, p_oom);
 
+    /* adjust > avail test branch (if sub-branch) */
+    void *p_adjavail = tlsf_aalloc(&t, 32, 32);
+    void *p_adjavail_barrier = tlsf_aalloc(&t, 32, 32);
+    memset(p_adjavail, 0xBB, 32);
+    void *p_adjavail_test = tlsf_arealloc(&t, p_adjavail, 32, 64);
+    assert(p_adjavail_test != NULL);
+    assert(p_adjavail_test == p_adjavail);
+    unsigned char *check_merge_ptr = (unsigned char *) p_adjavail_test;
+    for (int i = 0; i < 32; i++) {
+        assert(check_merge_ptr[i] == 0xBB);
+    }
+    tlsf_free(&t, p_adjavail_barrier);
+    tlsf_free(&t, p_adjavail_test);
+
+    /* adjust > avail test branch (else sub-branch) */
+    void *p_else = tlsf_aalloc(&t, 32, 32);
+    void *p_else_barrier = tlsf_aalloc(&t, 32, 32);
+    memset(p_else, 0xAA, 32);
+    void *p_else_test = tlsf_arealloc(&t, p_else, 32, 128);
+    assert(p_else_test != NULL);
+    assert(p_else_test != p_else);
+    unsigned char *check_ptr = (unsigned char *) p_else_test;
+    for (int i = 0; i < 32; i++) {
+        assert(check_ptr[i] == 0xAA);
+    }
+    tlsf_free(&t, p_else_barrier);
+    tlsf_free(&t, p_else_test);
+
     printf(". done\n");
 }
 
