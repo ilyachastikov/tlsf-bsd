@@ -2065,7 +2065,9 @@ static void arealloc_test(void)
 
     /* adjust > avail test branch (if sub-branch) */
     void *p_adjavail = tlsf_aalloc(&t, 32, 32);
+    void *p_if_free_space = tlsf_aalloc(&t, 32, 64);
     void *p_adjavail_barrier = tlsf_aalloc(&t, 32, 32);
+    tlsf_free(&t, p_if_free_space);
     memset(p_adjavail, 0xBB, 32);
     void *p_adjavail_test = tlsf_arealloc(&t, p_adjavail, 32, 64);
     assert(p_adjavail_test != NULL);
