@@ -191,7 +191,7 @@ extern "C" {
 #define TLSF_INIT_STATIC TLSF_INIT
 #endif
 
-/* Native alignment for target paltform architecture */
+/* Native alignment for target platform architecture */
 #ifndef TLSF_ARCH_ALIGNMENT
 #if defined(__AVX512F__)
 #define TLSF_ARCH_ALIGNMENT 64
@@ -206,7 +206,7 @@ extern "C" {
 #endif
 #endif
 
-/* Macros for native architecture alignment alloctions */
+/* Macros for native architecture alignment allocations */
 #ifndef TLSF_NATIVE_AALLOC
 #define TLSF_NATIVE_AALLOC(t, size) \
     (tlsf_aalloc((t), TLSF_ARCH_ALIGNMENT, (size)))
