@@ -32,14 +32,14 @@
  * missing, the binary terminates safely via __fastfail.
  * - This built-in behavior can be completely disabled by defining the macro
  *   TLSF_MSVC_CUSTOM_LZCNT_GUARD. This definition is required and used in two
- * scenarios:
+ *   scenarios:
  *     1. Custom Guard Logic: Alternative validation is required (e.g., to log
  *        an error message or implement a graceful fallback instead of a hard
  *        crash).
  *     2. No-CRT Environments: The project is compiled without the standard CRT
  *        runtime (e.g., shellcode, kernel drivers, or using /NODEFAULTLIB where
  *        _MT is undefined). Since the automatic initialization section cannot
- * be executed here, compilation will fail with a #error unless
+ *        be executed here, compilation will fail with a #error unless
  *        TLSF_MSVC_CUSTOM_LZCNT_GUARD is defined.
  * - Defining TLSF_MSVC_CUSTOM_LZCNT_GUARD serves as an explicit acknowledgment
  *   that the built-in check is bypassed, transferring the responsibility for
@@ -1835,18 +1835,18 @@ void *tlsf_realloc(tlsf_t *t, void *mem, size_t size)
 
 void *tlsf_arealloc(tlsf_t *t, void *mem, size_t align, size_t size)
 {
+    /* Alignment validation (power of two) */
+    if (UNLIKELY(!align || (align & (align - 1)) || align > TLSF_MAX_SIZE))
+        return NULL;
+
+    if (UNLIKELY(!mem))
+        return tlsf_aalloc(t, align, size);
+
     /* Zero-size requests are treated as free. */
     if (UNLIKELY(mem && !size)) {
         tlsf_free(t, mem);
         return NULL;
     }
-
-    if (UNLIKELY(!mem))
-        return tlsf_aalloc(t, align, size);
-
-    /* Alignment validation (power of two) */
-    if (UNLIKELY(!align || (align & (align - 1)) || align > TLSF_MAX_SIZE))
-        return NULL;
 
     /* If alignment is lower than standard one,
        we can use tlsf_realloc */
